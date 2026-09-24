@@ -4,6 +4,8 @@ Run a project preview and its local tests from a T3 worktree. Each worktree gets
 its own source snapshot, dependency cache, database volume, and loopback port.
 Tests use a separate snapshot and never use the preview database.
 
+Agents: read [AGENT-GUIDE.md](AGENT-GUIDE.md) before preview/test work. The installer deploys this guide beside the launcher on each host. Existing threads can read it explicitly and keep their current checkout; no restart or worktree migration is required.
+
 ## Use it in T3
 
 Choose a project on Kvant, Dozor, or Almaz, then create a worktree thread.

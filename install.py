@@ -12,7 +12,7 @@ HERE = Path(__file__).resolve().parent
 home = Path.home()
 destination = home / '.local/share/t3-dev-environments'
 destination.mkdir(parents=True, exist_ok=True)
-for name in ['dev.py', 'remote.py', 'profiles.json', 'Dockerfile', 'install.py']:
+for name in ['dev.py', 'remote.py', 'profiles.json', 'Dockerfile', 'install.py', 'README.md', 'AGENT-GUIDE.md']:
     if HERE != destination:
         shutil.copy2(HERE / name, destination / name)
 bin_dir = home / '.local/bin'
