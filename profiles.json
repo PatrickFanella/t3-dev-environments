@@ -1,0 +1,272 @@
+{
+  "dash": {
+    "setup": "npm --prefix frontend ci --no-audit --no-fund; cd backend; go mod download",
+    "start": "(cd backend && go run ./cmd/almaz) & cd frontend; exec npm run dev -- --host 0.0.0.0 --port 5173 --strictPort",
+    "port": 5173,
+    "health": "/api/v1/ping",
+    "db": "postgres:17",
+    "env": {
+      "PROMETHEUS_URL": "http://127.0.0.1:9",
+      "UPTIME_KUMA_URL": "http://127.0.0.1:9",
+      "UPTIME_KUMA_SLUG": "development",
+      "LISTEN_ADDR": ":8080"
+    },
+    "test": "(cd backend && go test -p 2 ./...); npm --prefix frontend run test:run",
+    "verify": "(cd backend && go vet ./... && go test -p 2 ./... && go build ./cmd/almaz); npm --prefix frontend run lint; npm --prefix frontend run test:run; npm --prefix frontend run build",
+    "test_env": {}
+  },
+  "deadweb-relay": {
+    "setup": "go mod download",
+    "start": "exec go run ./cmd/relay",
+    "port": 8080,
+    "env": {
+      "DATA_DIR": "/data/relay",
+      "ADDR": ":8080",
+      "SITE_NAME": "Deadweb development"
+    },
+    "test": "go test -p 2 ./...",
+    "verify": "go vet ./...; go test -p 2 ./...; go build ./cmd/relay",
+    "test_env": {},
+    "origin_env": [
+      "BASE_URL"
+    ]
+  },
+  "augr": {
+    "setup": "npm --prefix web ci --no-audit --no-fund; go mod download",
+    "start": "migrate -path migrations -database \"$DATABASE_URL\" up; go run ./cmd/tradingagent serve & cd web; exec npm run dev -- --host 0.0.0.0 --port 5173 --strictPort",
+    "port": 5173,
+    "db": "timescale/timescaledb:2.17.2-pg17",
+    "redis": true,
+    "env": {
+      "APP_ENV": "development",
+      "APP_HOST": "0.0.0.0",
+      "APP_PORT": "8081",
+      "JWT_SECRET": "isolated-dev-only-not-a-real-secret",
+      "ENABLE_SCHEDULER": "false",
+      "ENABLE_LIVE_TRADING": "false",
+      "ENABLE_TICKER_DISCOVERY": "false",
+      "ENABLE_POLYMARKET_AUTOMATION": "false",
+      "ENABLE_AGENT_MEMORY": "false",
+      "KALSHI_AUTO_EXITS_ENABLED": "false",
+      "OLLAMA_BASE_URL": "http://127.0.0.1:9",
+      "OPENCODE_BASE_URL": "http://127.0.0.1:9",
+      "PROJECTION_ACCOUNT_ID": "00000000-0000-4000-8000-000000000064",
+      "LLM_DEFAULT_PROVIDER": "ollama",
+      "OLLAMA_API_KEY": "isolated-development-dummy",
+      "POLYGON_API_KEY": "isolated-development-dummy"
+    },
+    "test": "go test -p 2 -short ./cmd/... ./internal/... ./migrations/... ./monitoring/...; npm --prefix web run test -- --run",
+    "verify": "go vet ./cmd/... ./internal/...; go test -p 2 -short ./cmd/... ./internal/... ./migrations/... ./monitoring/...; npm --prefix web run lint; npm --prefix web run test -- --run; npm --prefix web run build",
+    "health": "/api/v1/health",
+    "test_env": {}
+  },
+  "clpr": {
+    "setup": "npm --prefix frontend ci --no-audit --no-fund; cd backend; go mod download",
+    "start": "migrate -path backend/migrations -database \"$DATABASE_URL\" up; (cd backend && go run ./cmd/api) & cd frontend; exec npm run dev -- --host 0.0.0.0 --port 5173 --strictPort",
+    "port": 5173,
+    "db": "pgvector/pgvector:pg17",
+    "redis": true,
+    "env": {
+      "ENVIRONMENT": "development",
+      "PORT": "8080",
+      "DB_HOST": "db",
+      "DB_PORT": "5432",
+      "DB_USER": "clpr",
+      "DB_PASSWORD": "disposable-dev-only",
+      "DB_NAME": "clpr",
+      "DB_SSLMODE": "disable",
+      "REDIS_HOST": "redis",
+      "REDIS_PORT": "6379",
+      "OPENSEARCH_URL": "http://search:9200",
+      "EMAIL_ENABLED": "false",
+      "EMBEDDING_ENABLED": "false",
+      "MIRROR_ENABLED": "false",
+      "TELEMETRY_ENABLED": "false",
+      "MFA_ENCRYPTION_KEY": "dev-only-00000000000000000000000",
+      "DATABASE_URL": "postgres://clpr:disposable-dev-only@db:5432/clpr?sslmode=disable"
+    },
+    "services": {
+      "search": {
+        "image": "opensearchproject/opensearch:2.11.1",
+        "environment": {
+          "discovery.type": "single-node",
+          "OPENSEARCH_JAVA_OPTS": "-Xms256m -Xmx256m",
+          "DISABLE_SECURITY_PLUGIN": "true",
+          "DISABLE_INSTALL_DEMO_CONFIG": "true",
+          "bootstrap.system_call_filter": "false"
+        },
+        "mem_limit": "1g",
+        "cpus": 1
+      }
+    },
+    "test": "(cd backend && go test -p 2 -short ./...); npm --prefix frontend run test -- --run",
+    "verify": "(cd backend && go vet ./... && go test -p 2 -short ./...); npm --prefix frontend run typecheck; npm --prefix frontend run lint; npm --prefix frontend run test -- --run; npm --prefix frontend run build",
+    "health": "/api/v1/health",
+    "test_env": {},
+    "origin_env": [
+      "CORS_ALLOWED_ORIGINS",
+      "WEBSOCKET_ALLOWED_ORIGINS"
+    ],
+    "database_user": "clpr",
+    "database": "clpr"
+  },
+  "patchwork": {
+    "setup": "npm ci --no-audit --no-fund",
+    "start": "NODE_ENV=test npm run start -w @patchwork/api & exec npm run dev -w @patchwork/web -- --host 0.0.0.0 --port 5173 --strictPort",
+    "port": 5173,
+    "env": {
+      "PATCHWORK_ENV": "development",
+      "API_DATA_SOURCE": "fixture",
+      "API_HOST": "0.0.0.0",
+      "API_PORT": "4000",
+      "ATPROTO_SERVICE_DID": "did:web:development.invalid",
+      "ATPROTO_PDS_URL": "http://127.0.0.1:9",
+      "VITE_DATA_MODE": "fixture"
+    },
+    "test": "npm test",
+    "verify": "npm run check; npm run build",
+    "health": "/api/health",
+    "test_env": {},
+    "origin_env": [
+      "API_PUBLIC_ORIGIN"
+    ],
+    "notes": "Built-in fixture preview. No live indexer, AT OAuth, or persistent production API is exercised."
+  },
+  "productivity-suite": {
+    "setup": "npm install --prefix /cache/pm pnpm@11.15.1 --no-audit --no-fund; /cache/pm/node_modules/.bin/pnpm install --frozen-lockfile",
+    "start": "/cache/pm/node_modules/.bin/pnpm --filter @suite/server dev & exec /cache/pm/node_modules/.bin/pnpm --filter @suite/web dev --host 0.0.0.0",
+    "port": 5173,
+    "env": {
+      "HOST": "0.0.0.0",
+      "PORT": "8080",
+      "SUITE_DATABASE_PATH": "/data/suite.sqlite",
+      "SUITE_CREDENTIAL_KEY_PATH": "/data/credential.key",
+      "SUITE_SECURE_COOKIES": "false",
+      "BAIKAL_ENDPOINT": "http://baikal/dav.php/"
+    },
+    "services": {
+      "baikal": {
+        "image": "ckulka/baikal:0.10.1-nginx@sha256:434bdd162247cc6aa6f878c9b4dce6216e39e79526b980453b13812d5f8ebf4b",
+        "mem_limit": "384m",
+        "cpus": 0.5
+      }
+    },
+    "test": "/cache/pm/node_modules/.bin/pnpm test",
+    "verify": "/cache/pm/node_modules/.bin/pnpm verify",
+    "health": "/api/health",
+    "test_env": {}
+  },
+  "switchyard": {
+    "setup": "pnpm --dir web install --frozen-lockfile; cd backend; go mod download",
+    "start": "(cd backend && go run ./cmd/app) & cd web; exec pnpm dev --host 0.0.0.0 --port 5173 --strictPort",
+    "port": 5173,
+    "db": "postgres:17",
+    "env": {
+      "SWITCHYARD_LISTEN_ADDR": ":8080",
+      "SWITCHYARD_DATABASE_URL": "postgres://dev:disposable-dev-only@db:5432/dev?sslmode=disable",
+      "SWITCHYARD_CONTROL_API_TOKEN": "local-development-only",
+      "SWITCHYARD_WORKER_ENABLED": "false",
+      "SWITCHYARD_SCHEDULER_ENABLED": "false",
+      "SWITCHYARD_COMPATIBILITY_OBSERVER_ENABLED": "false",
+      "SWITCHYARD_MODEL_WORKER_ENABLED": "false",
+      "SWITCHYARD_MODEL_LISTEN_ADDR": "127.0.0.1:11435"
+    },
+    "test": "(cd backend && go test -p 2 ./...); pnpm --dir web test",
+    "verify": "(cd backend && go vet ./... && go test -p 2 ./...); pnpm --dir web run format; pnpm --dir web run lint; pnpm --dir web test; pnpm --dir web build",
+    "health": "/healthz",
+    "test_env": {}
+  },
+  "top-shelf-remodels": {
+    "setup": "npm install --prefix /cache/pm pnpm@10.32.1 --no-audit --no-fund; /cache/pm/node_modules/.bin/pnpm install --frozen-lockfile",
+    "start": "exec node node_modules/next/dist/bin/next dev --hostname 0.0.0.0 --port 3000",
+    "port": 3000,
+    "db": "postgres:17-alpine",
+    "env": {
+      "PAYLOAD_SECRET": "local-only-development-payload-secret-32-characters",
+      "PAYLOAD_DB_PUSH": "true",
+      "NEXT_PUBLIC_SITE_URL": "http://localhost:3000"
+    },
+    "test": "/cache/pm/node_modules/.bin/pnpm test",
+    "verify": "/cache/pm/node_modules/.bin/pnpm typecheck; /cache/pm/node_modules/.bin/pnpm test",
+    "test_env": {},
+    "origin_env": [
+      "NEXT_PUBLIC_SITE_URL"
+    ]
+  },
+  "dsa-seats": {
+    "setup": "npm ci --no-audit --no-fund",
+    "start": "npm run db:migrate; NODE_ENV=test npm run seed:task10-map-e2e; exec node node_modules/next/dist/bin/next dev --hostname 0.0.0.0 --port 3000",
+    "port": 3000,
+    "db": "postgis/postgis:16-3.4",
+    "test": "npm run test:run -- --exclude src/db/integration.test.ts --maxWorkers=1",
+    "verify": "npm run typecheck; npm run lint; npm run test:run -- --exclude src/db/integration.test.ts --maxWorkers=1; npm run test:production-contract; npm run data:verify",
+    "database": "dsa_seats_dev_test",
+    "env": {
+      "DATABASE_URL": "postgres://dev:disposable-dev-only@db:5432/dsa_seats_dev_test?sslmode=disable",
+      "MAP_ARTIFACT_ROOT": "/data/tmp/task10",
+      "CORRECTION_INTAKE_ENABLED": "false",
+      "ADDRESS_LOOKUP_MODE": "disabled"
+    },
+    "test_env": {
+      "NODE_OPTIONS": "--max-old-space-size=3072"
+    }
+  },
+  "hasanara": {
+    "setup": "npm --prefix frontend ci --no-audit --no-fund; python3 -m venv /cache/venv; /cache/venv/bin/pip install -c constraints.txt -r requirements-api.txt -r requirements-dev.txt",
+    "start": "/cache/venv/bin/python scripts/run_migrations.py upgrade; /cache/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 41177 & cd frontend; exec npm run dev -- --host 0.0.0.0 --port 5173 --strictPort",
+    "port": 5173,
+    "db": "postgres:16",
+    "redis": true,
+    "env": {
+      "DATABASE_URL": "postgresql+psycopg://dev:disposable-dev-only@db:5432/dev",
+      "ENVIRONMENT": "development",
+      "SEARCH_BACKEND": "postgres",
+      "SESSION_SECRET": "isolated-development-session-secret",
+      "ANALYTICS_HMAC_SECRET": "isolated-development-analytics-secret",
+      "FRONTEND_ORIGIN": "http://localhost:5173",
+      "ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION": "true",
+      "ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION": "true",
+      "OTEL_SDK_DISABLED": "true",
+      "JS_RUNTIME_CMD": "node",
+      "JS_RUNTIME_ARGS": "",
+      "PATH": "/cache/venv/bin:/usr/local/go/bin:/opt/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    },
+    "test": "npm --prefix frontend run test -- --run; ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION=true ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION=true /cache/venv/bin/python scripts/run_migrations.py upgrade; /cache/venv/bin/python -m pytest tests --ignore=tests/integration --ignore=tests/worker -q",
+    "verify": "npm --prefix frontend run lint; npm --prefix frontend run test -- --run; npm --prefix frontend run build; ALLOW_SESSION_TOKEN_CONTRACT_MIGRATION=true ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION=true /cache/venv/bin/python scripts/run_migrations.py upgrade; /cache/venv/bin/python -m pytest tests --ignore=tests/integration --ignore=tests/worker -q",
+    "health": "/api/health",
+    "test_env": {
+      "DATABASE_URL": "postgresql+psycopg://dev:disposable-dev-only@db:5432/dev",
+      "HASANARA_TEST_DATABASE_URL": "postgresql+psycopg://dev:disposable-dev-only@db:5432/dev",
+      "REDIS_URL": "redis://redis:6379/0"
+    },
+    "origin_env": [
+      "FRONTEND_ORIGIN",
+      "CORS_ALLOW_ORIGINS"
+    ],
+    "test_services": [
+      "db",
+      "redis"
+    ]
+  },
+  "subcult-os": {
+    "setup": "pnpm --dir web install --frozen-lockfile; pnpm --dir mobile install --frozen-lockfile; cd backend; go mod download",
+    "start": "(cd backend && go run ./cmd/app) & cd web; exec pnpm dev --host 0.0.0.0 --port 5173 --strictPort",
+    "port": 5173,
+    "health": "/api/health",
+    "db": "postgres:17",
+    "env": {
+      "APP_ENV": "development",
+      "API_ADDR": ":8080",
+      "PUBLIC_WEB_URL": "http://localhost:5173",
+      "MAIL_DELIVERY_ENABLED": "false",
+      "ATPROTO_OAUTH_ENABLED": "false",
+      "AT_PROJECTION_ENABLED": "false"
+    },
+    "test": "make test",
+    "verify": "make fmt lint check-contracts test build open-pilot-check",
+    "test_env": {},
+    "origin_env": [
+      "PUBLIC_WEB_URL"
+    ]
+  }
+}
