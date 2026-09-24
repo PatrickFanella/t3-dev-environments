@@ -257,9 +257,9 @@ class Environment:
         self.dc('logs', '--tail', '40', 'app')
         raise ValueError('Preview did not become ready within 240 seconds.')
 
-    def test(self, verify=False):
+    def test(self, verify=False, command=None):
         self.setup()
-        command = self.recipe.get('verify') if verify else self.recipe.get('test')
+        command = command or (self.recipe.get('verify') if verify else self.recipe.get('test'))
         if not command:
             raise ValueError('No test command exists for this profile.')
         # Only explicitly requested services start, in this test-only project.
@@ -273,7 +273,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--profile', choices=sorted(PROFILES))
     parser.add_argument('action', choices=['setup', 'start', 'sync', 'watch', 'test', 'verify', 'url', 'logs', 'stop', 'status', 'list'])
+    parser.add_argument('--command', help='Explicit shell command inside the isolated test environment (test/verify only)')
     args = parser.parse_args()
+    if args.command is not None and (args.action not in {'test', 'verify'} or not args.command.strip()):
+        parser.error('--command requires test or verify and a nonempty command')
     if args.action == 'list':
         for p in STATE.glob('*/identity.json'):
             print(p.parent.name, json.loads(p.read_text())['source'])
@@ -300,7 +303,7 @@ def main():
         elif args.action in {'test', 'verify'}:
             with lock(STATE / 'host-test.lock'):
                 try:
-                    env.test(args.action == 'verify')
+                    env.test(args.action == 'verify', args.command)
                 finally:
                     if env.file.exists():
                         env.dc('--profile', 'tools', 'down', '--volumes', check=False)

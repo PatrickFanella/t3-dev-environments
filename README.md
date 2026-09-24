@@ -34,6 +34,19 @@ t3-dev --profile dash test
 t3-dev --profile dash stop
 ```
 
+For a focused check, supply the exact command to run in the isolated test snapshot:
+
+```sh
+t3-dev --profile dash test --command 'cd backend && go test ./...'
+t3-dev --profile dsa-seats test --command 'npm run test:run -- src/ui/view-models.test.ts --maxWorkers=1'
+```
+
+Choose an existing package or test path in your checkout. `--command` replaces
+the recipe's test command; dependency setup and disposable service cleanup still
+run. Include any required test migrations in your custom command. Standard
+**Test** and **Check Code** actions keep their documented scopes. One test run
+per host holds the test lock; another test waits for it to finish.
+
 Profile names are `augr`, `clpr`, `dash`, `deadweb-relay`, `dsa-seats`, `hasanara`,
 `patchwork`, `productivity-suite`, `subcult-os`, `switchyard`, and
 `top-shelf-remodels`. The T3 actions pass the profile explicitly, so worktree
