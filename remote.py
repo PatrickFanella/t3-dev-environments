@@ -13,7 +13,7 @@ parser.add_argument('project')
 parser.add_argument('action', choices=['start', 'open', 'stop', 'test', 'verify', 'status'], default='open', nargs='?')
 parser.add_argument('--root', help='Remote T3 worktree path; defaults to the project checkout')
 args = parser.parse_args()
-profiles = json.loads((Path(__file__).parent / 'profiles.json').read_text())
+profiles = json.loads((Path(__file__).resolve().parent / 'profiles.json').read_text())
 if args.project not in profiles:
     parser.error('Unknown project')
 root = args.root or '/home/onnwee/Work/T3/' + args.project
