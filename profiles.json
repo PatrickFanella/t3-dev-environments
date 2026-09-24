@@ -237,7 +237,8 @@
     "test_env": {
       "DATABASE_URL": "postgresql+psycopg://dev:disposable-dev-only@db:5432/dev",
       "HASANARA_TEST_DATABASE_URL": "postgresql+psycopg://dev:disposable-dev-only@db:5432/dev",
-      "REDIS_URL": "redis://redis:6379/0"
+      "REDIS_URL": "redis://redis:6379/0",
+      "ALLOW_EVENT_TOKEN_CONTRACT_MIGRATION": "true"
     },
     "origin_env": [
       "FRONTEND_ORIGIN",
