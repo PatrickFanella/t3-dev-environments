@@ -269,5 +269,23 @@
     "origin_env": [
       "PUBLIC_WEB_URL"
     ]
+  },
+  "the-common-house": {
+    "setup": "python3 --version; test -f README.md; test -f docs/design/README.md; python3 -m json.tool docs/import-provenance.json > /dev/null",
+    "start": "exec python3 -m http.server 8000 --bind 0.0.0.0 --directory docs",
+    "port": 8000,
+    "health": "/design/README.md",
+    "env": {
+      "APP_ENV": "development",
+      "PYTHONUNBUFFERED": "1",
+      "DATABASE_URL": "",
+      "REDIS_URL": ""
+    },
+    "test": "python3 -c 'from pathlib import Path\nimport re\nfrom urllib.parse import unquote, urlsplit\nroot = Path.cwd().resolve()\nfiles = [root / \"README.md\", *sorted((root / \"docs\").rglob(\"*.md\"))]\nassert len(files) >= 12, \"Expected repository README and design pack\"\nlinks = 0\nerrors = []\nfor path in files:\n    text = path.read_text(encoding=\"utf-8\")\n    if not text.strip():\n        errors.append(f\"{path.relative_to(root)}: empty document\")\n    for target in re.findall(r\"\\[[^\\]]*\\]\\(([^\\s)]+)\\)\", text):\n        url = urlsplit(target)\n        if url.scheme or url.netloc or not url.path:\n            continue\n        dest = (path.parent / unquote(url.path)).resolve()\n        links += 1\n        if not dest.is_relative_to(root) or not dest.is_file():\n            errors.append(f\"{path.relative_to(root)}: missing or unsafe target {target}\")\nassert not errors, \"\\n\".join(errors)\nprint(f\"PASS: {len(files)} nonempty Markdown documents; {links} local file links\")\n'",
+    "verify": "python3 -c 'from pathlib import Path\nimport re\nfrom urllib.parse import unquote, urlsplit\nroot = Path.cwd().resolve()\nfiles = [root / \"README.md\", *sorted((root / \"docs\").rglob(\"*.md\"))]\nassert len(files) >= 12, \"Expected repository README and design pack\"\nlinks = 0\nerrors = []\nfor path in files:\n    text = path.read_text(encoding=\"utf-8\")\n    if not text.strip():\n        errors.append(f\"{path.relative_to(root)}: empty document\")\n    for target in re.findall(r\"\\[[^\\]]*\\]\\(([^\\s)]+)\\)\", text):\n        url = urlsplit(target)\n        if url.scheme or url.netloc or not url.path:\n            continue\n        dest = (path.parent / unquote(url.path)).resolve()\n        links += 1\n        if not dest.is_relative_to(root) or not dest.is_file():\n            errors.append(f\"{path.relative_to(root)}: missing or unsafe target {target}\")\nassert not errors, \"\\n\".join(errors)\nprint(f\"PASS: {len(files)} nonempty Markdown documents; {links} local file links\")\n'; python3 -m json.tool docs/import-provenance.json > /dev/null",
+    "test_env": {
+      "APP_ENV": "test"
+    },
+    "notes": "Design-document source preview only: /design/. Python standard library; no dependencies, database, Unity Editor, playable build, or gameplay tests. Markdown is served as source, not rendered HTML."
   }
 }

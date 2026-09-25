@@ -51,7 +51,7 @@ per host holds the test lock; another test waits for it to finish.
 
 Profile names are `augr`, `clpr`, `dash`, `deadweb-relay`, `dsa-seats`, `hasanara`,
 `patchwork`, `productivity-suite`, `subcult-os`, `switchyard`, and
-`top-shelf-remodels`. The T3 actions pass the profile explicitly, so worktree
+`top-shelf-remodels`, and `the-common-house`. The T3 actions pass the profile explicitly, so worktree
 directory names do not matter.
 
 ## Remote previews
@@ -138,3 +138,22 @@ script entries from T3 project overrides. Compare the saved settings with the
 current file before restoring anything; do not replace subsequent user edits.
 Remote development checkouts and retained volumes can remain for recovery.
 No application production deployment is part of this setup.
+
+## The Common House design-stage recipe
+
+`the-common-house` currently contains a Unity design pack, without a Unity
+project, package manifest, Editor version pin, database, or existing tests.
+The recipe uses Python 3 from the shared tools image with no package installs.
+Start Dev serves the copied `docs/` tree as static source files; browse
+`/design/`. Markdown is not rendered, and this is not a game preview.
+Test checks nonempty Markdown documents and simple inline local file links
+in the repository README and `docs/`. Check Code also parses the import
+provenance JSON. It does not validate remote links, heading anchors, creative
+consistency, historical import hashes, Unity code, or gameplay.
+
+The app has explicit development settings, no database services or credentials,
+and the launcher's isolated snapshot and loopback proxy. Test uses its own
+snapshot. These actions also work in the original design-only checkout; no
+new repository script is required. Replace this recipe after creating and
+qualifying the real Unity project. Do not invent an Editor pin or copy another
+game's project settings.
