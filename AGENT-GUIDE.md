@@ -13,7 +13,7 @@ rtk proxy git status --short --branch
 rtk proxy git remote -v
 ```
 
-Keep the current host, branch, worktree, and uncommitted edits. Never move an active thread to a different checkout merely to use this launcher. Resolve the profile from the repository identity, not the worktree directory name. Supported profiles: `augr`, `clpr`, `dash`, `deadweb-relay`, `dsa-seats`, `hasanara`, `patchwork`, `productivity-suite`, `subcult-os`, `switchyard`, `top-shelf-remodels`. Hasanara's origin may be named `transcript-create`; use profile `hasanara`.
+Keep the current host, branch, worktree, and uncommitted edits. Never move an active thread to a different checkout merely to use this launcher. Resolve the profile from the repository identity, not the worktree directory name. Supported profiles: `augr`, `clpr`, `dash`, `deadweb-relay`, `dsa-seats`, `hasanara`, `patchwork`, `productivity-suite`, `subcult-os`, `switchyard`, `top-shelf-remodels`, `the-common-house`, `arkhiv`. Hasanara's origin may be named `transcript-create`; use profile `hasanara`.
 
 The launcher is installed at `~/.local/share/t3-dev-environments/dev.py`; the command is `~/.local/bin/t3-dev`. Read the corresponding entry in `~/.local/share/t3-dev-environments/profiles.json` before relying on its test scope. If the command is absent from PATH, use its absolute path. If the installation is missing, report the host and path; do not fall back to production Compose.
 
@@ -77,6 +77,24 @@ The launcher supports old worktree paths without modifying their Git metadata. M
 ## Ownership
 
 Authoring source on Kvant: `~/Work/Tools/t3-dev-environments`. Installed guide: `~/.local/share/t3-dev-environments/AGENT-GUIDE.md` on all three hosts. Edit the authoring source and redeploy; do not maintain separate host copies. The README describes operations and rollback. Repository AGENTS.md requirements and the user's task remain authoritative.
+
+## The Common House document recipe
+
+`the-common-house` serves the repository’s `docs/` tree as source files with
+Python 3 from the shared tools image; browse `/design/`. The repository now
+contains a Unity project, but this recipe provides a document preview. It does
+not launch the Editor, render Markdown, build the game, or run Unity tests.
+Follow the repository instructions for those checks.
+Test checks nonempty Markdown documents and simple inline local file links
+in the repository README and `docs/`. Check Code also parses the import
+provenance JSON. It does not validate remote links, heading anchors, creative
+consistency, historical import hashes, Unity code, or gameplay.
+
+The app has explicit development settings, no database services or credentials,
+and the launcher's isolated snapshot and loopback proxy. Test uses its own
+snapshot. These actions retain the document-only scope in both older design
+checkouts and the current Unity repository. Unity checks require the actual
+Editor and normal licensing, as described in the repository instructions.
 
 ## Arkhiv private pilot
 

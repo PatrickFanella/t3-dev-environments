@@ -50,8 +50,8 @@ run. Include any required test migrations in your custom command. Standard
 per host holds the test lock; another test waits for it to finish.
 
 Profile names are `augr`, `clpr`, `dash`, `deadweb-relay`, `dsa-seats`, `hasanara`,
-`patchwork`, `productivity-suite`, `subcult-os`, `switchyard`, and
-`top-shelf-remodels`. The T3 actions pass the profile explicitly, so worktree
+`patchwork`, `productivity-suite`, `subcult-os`, `switchyard`,
+`top-shelf-remodels`, `the-common-house`, and `arkhiv`. The T3 actions pass the profile explicitly, so worktree
 directory names do not matter.
 
 ## Remote previews
@@ -153,6 +153,41 @@ current file before restoring anything; do not replace subsequent user edits.
 Remote development checkouts and retained volumes can remain for recovery.
 No application production deployment is part of this setup.
 
-Arkhiv uses profile `arkhiv` for the `arkhiv-politik` checkout alias, catalog
-fixtures, and the repository verification gate. Recipe `test_db` selects the
-disposable test database independently of the retained preview version.
+## The Common House document recipe
+
+`the-common-house` serves the repository’s `docs/` tree as source files with
+Python 3 from the shared tools image; browse `/design/`. The repository now
+contains a Unity project, but this recipe provides a document preview. It does
+not launch the Editor, render Markdown, build the game, or run Unity tests.
+Follow the repository instructions for those checks.
+Test checks nonempty Markdown documents and simple inline local file links
+in the repository README and `docs/`. Check Code also parses the import
+provenance JSON. It does not validate remote links, heading anchors, creative
+consistency, historical import hashes, Unity code, or gameplay.
+
+The app has explicit development settings, no database services or credentials,
+and the launcher's isolated snapshot and loopback proxy. Test uses its own
+snapshot. These actions retain the document-only scope in both older design
+checkouts and the current Unity repository. Unity checks require the actual
+Editor and normal licensing, as described in the repository instructions.
+
+## Arkhiv private pilot
+
+Use profile `arkhiv` for the `arkhiv-politik` checkout (origin
+`subculture-collective/arkhiv`). The installer recognizes the checkout alias.
+Go 1.26, Node 24, pnpm 10.33.0, and Poppler are supplied by the tools image.
+Start Dev applies migrations, seeds two synthetic collections, and runs the Go
+service and Vite. `/api/ready` checks the catalog through the frontend proxy.
+The pilot includes the catalog, preservation commands, and a local PDF reader.
+Live acquisition remains outside the isolated preview and test networks.
+`ARKHIV_ARCHIVE` points to local preview storage. Test runs `make test`; Check Code
+runs `make verify`, including the catalog integration checks against the
+disposable service named by `TEST_DATABASE_URL`.
+
+Arkhiv uses `test_db=postgres:15` to select a disposable database version compatible
+with the shared `pg_dump` client. Its retained preview database stays PostgreSQL
+17. This field has no effect on preview storage or on recipes that omit it.
+Never downgrade a retained database volume to resolve a client mismatch. The
+repository's separate `make test-browser` gate uses PostgreSQL 17 and a matching
+backup client; the PostgreSQL 15 launcher check does not establish version-17
+backup compatibility.
