@@ -83,6 +83,18 @@ class SnapshotTests(unittest.TestCase):
         self.assertTrue(self.env.snapshot())
         self.assertEqual((self.env.source / 'code.ts').read_text(), 'edited')
 
+    def test_test_database_override_preserves_preview_version(self):
+        self.env.recipe = {'db': 'postgres:17', 'test_db': 'postgres:15', 'port': 5173, 'start': 'true'}
+        self.env.testing = False
+        self.env.compose()
+        preview = json.loads((self.env.directory / 'compose.json').read_text())
+        self.assertEqual(preview['services']['db']['image'], 'postgres:17')
+        self.env.testing = True
+        self.env.compose()
+        testing = json.loads((self.env.directory / 'compose.json').read_text())
+        self.assertEqual(testing['services']['db']['image'], 'postgres:15')
+        self.assertIn('tmpfs', testing['services']['db'])
+
     def test_removed_source_does_not_delete_generated_files(self):
         (self.root / 'source.ts').write_text('source')
         self.env.snapshot()

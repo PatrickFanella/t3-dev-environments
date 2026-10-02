@@ -97,12 +97,19 @@ new repository script is required. Replace this recipe after creating and
 qualifying the real Unity project. Do not invent an Editor pin or copy another
 game's project settings.
 
-## Arkhiv bootstrap
+## Arkhiv private pilot
 
 Use profile `arkhiv` for the `arkhiv-politik` checkout (origin
-`subculture-collective/arkhiv`). The installer recognizes the checkout alias.
-Go 1.26, Node 24, and pnpm 10.33.0 are supplied by the tools image.
-Start Dev runs the Go service and Vite; `/api/health` checks the API through
-the frontend proxy. PostgreSQL is isolated but not connected to the bootstrap
-API. Test runs `make test`; Check Code runs the repository's full `make verify`.
-There is no live ingestion, archive payload, database migration, or reader yet.
+`subculture-collective/arkhiv`). Go 1.26, Node 24, pnpm 10.33.0, and Poppler
+are supplied by the shared tools image. Start Dev applies migrations and seeds
+two synthetic collections before starting Go/Vite. `/api/ready` checks the
+catalog through the frontend proxy. `ARKHIV_ARCHIVE` points to disposable local
+preview storage; live documents are acquired separately on the homelab.
+
+The retained preview database remains PostgreSQL 17. `test_db` selects PostgreSQL
+15 only in disposable test snapshots to match the shared `pg_dump` client.
+Never downgrade or remove a retained preview volume to resolve a client mismatch.
+Test runs `make test`; Check Code runs `make verify`, including catalog integration
+when `TEST_DATABASE_URL` names the isolated launcher service. The separate
+`make test-browser` gate uses PostgreSQL 17 and a matching runtime backup client.
+Application/test isolation remains enabled; no live acquisition occurs there.

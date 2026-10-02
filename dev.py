@@ -203,7 +203,7 @@ class Environment:
         for key in self.recipe.get('origin_env', []):
             environment[key] = f'http://127.0.0.1:{preview_port}'
         services = {}
-        db = self.recipe.get('db')
+        db = self.recipe.get('test_db', self.recipe.get('db')) if self.testing else self.recipe.get('db')
         if db:
             database = self.recipe.get('database', 'dev')
             database_user = self.recipe.get('database_user', 'dev')

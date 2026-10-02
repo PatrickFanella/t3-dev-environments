@@ -181,3 +181,7 @@ Start Dev runs the Go service and Vite; `/api/health` checks the API through
 the frontend proxy. PostgreSQL is isolated but not connected to the bootstrap
 API. Test runs `make test`; Check Code runs the repository's full `make verify`.
 There is no live ingestion, archive payload, database migration, or reader yet.
+
+Arkhiv uses `test_db` to select a disposable database version compatible with the
+shared backup client, independently of its retained preview database. This field
+has no effect on preview storage or on recipes that omit it.
