@@ -191,3 +191,12 @@ Never downgrade a retained database volume to resolve a client mismatch. The
 repository's separate `make test-browser` gate uses PostgreSQL 17 and a matching
 backup client; the PostgreSQL 15 launcher check does not establish version-17
 backup compatibility.
+
+## Dedhed development
+
+Use profile `dedhed` for the concert library and radio application. Start seeds
+clearly labeled synthetic test tones in disposable local media storage. Both
+on-demand set playback and shared scheduling use local audio; the isolated app
+and test networks never acquire real music. Check Code runs `make verify`;
+database integration uses the separate PostgreSQL 17 test service. Live source
+review, acquisition, private qualification, and recovery are separate workflows.
