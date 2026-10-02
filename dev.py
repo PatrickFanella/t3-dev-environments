@@ -29,6 +29,61 @@ def run(argv, *, cwd=None, capture=False, check=True, **kwargs):
                           stdout=subprocess.PIPE if capture else None, **kwargs)
 
 
+def report_address_pool_exhaustion():
+    """List stopped Compose owners without removing any of their resources."""
+    print('Docker address pools are exhausted. Stop a finished environment to release its network; '
+          'do not prune other threads or remove data volumes.', file=sys.stderr)
+    try:
+        networks = run(['docker', 'network', 'ls', '--format', '{{json .}}'], capture=True)
+        containers = run(['docker', 'ps', '-a', '--format', '{{json .}}'], capture=True)
+        owners = {}
+        for line in containers.stdout.splitlines():
+            container = json.loads(line)
+            labels = dict(label.split('=', 1) for label in container.get('Labels', '').split(',') if '=' in label)
+            project = labels.get('com.docker.compose.project')
+            if project:
+                owners.setdefault(project, []).append(container['State'])
+        groups = {}
+        for line in networks.stdout.splitlines():
+            network = json.loads(line)
+            # Network ls does not expose labels; inspect only Compose networks.
+            if network.get('Driver') != 'bridge':
+                continue
+            inspected = run(['docker', 'network', 'inspect', network['ID']], capture=True)
+            project = (json.loads(inspected.stdout)[0].get('Labels') or {}).get('com.docker.compose.project')
+            if project and all(state in {'exited', 'created', 'dead'} for state in owners.get(project, [])):
+                groups.setdefault(project, []).append(network['Name'])
+        for project, names in sorted(groups.items()):
+            print(f'  Review owner {project}: {len(owners.get(project, []))} stopped containers; '
+                  f'networks: {", ".join(sorted(names))}', file=sys.stderr)
+        if not groups:
+            print('  No stopped Compose projects found. Review host address-pool capacity.', file=sys.stderr)
+        print('Use the owning worktree’s Stop Dev action, or its original Compose file with '
+              'docker compose down (without --volumes). No resources were removed.', file=sys.stderr)
+    except (subprocess.CalledProcessError, ValueError, KeyError, OSError) as error:
+        print(f'Could not list network owners: {error}. Original command failure is preserved.', file=sys.stderr)
+
+
+def compose_run(argv, *, capture=False, check=True):
+    if capture:
+        result = run(argv, capture=True, check=False, stderr=subprocess.PIPE)
+        if result.stderr:
+            print(result.stderr, end='', file=sys.stderr)
+    else:
+        # Compose progress is on stderr. Stream it while retaining a bounded error tail.
+        tail = ''
+        with subprocess.Popen(argv, text=True, stderr=subprocess.PIPE) as process:
+            for line in process.stderr:
+                print(line, end='', file=sys.stderr, flush=True)
+                tail = (tail + line)[-65536:]
+            result = subprocess.CompletedProcess(argv, process.wait(), stderr=tail)
+    if result.returncode and 'all predefined address pools have been fully subnetted' in result.stderr:
+        report_address_pool_exhaustion()
+    if check:
+        result.check_returncode()
+    return result
+
+
 def safe_file(name, tracked=False):
     p = Path(name)
     return (not p.is_absolute() and '..' not in p.parts
@@ -200,7 +255,7 @@ class Environment:
         self.file.write_text(json.dumps(config, indent=2).replace('$', '$$'))
 
     def dc(self, *args, capture=False, check=True):
-        return run(['docker', 'compose', '--env-file', '/dev/null', '-p', self.project, '-f', str(self.file), *args], capture=capture, check=check)
+        return compose_run(['docker', 'compose', '--env-file', '/dev/null', '-p', self.project, '-f', str(self.file), *args], capture=capture, check=check)
 
     def setup(self):
         self.snapshot()

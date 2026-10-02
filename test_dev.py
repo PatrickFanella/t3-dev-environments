@@ -1,4 +1,5 @@
 import json
+import io
 from pathlib import Path
 import subprocess
 import tempfile
@@ -6,6 +7,46 @@ import unittest
 from unittest.mock import patch
 
 import dev
+
+
+class NetworkFailureTests(unittest.TestCase):
+    def test_pool_error_reports_owners_and_preserves_exit_status(self):
+        failure = subprocess.CompletedProcess(['docker', 'compose'], 17, '',
+            'Error: all predefined address pools have been fully subnetted\n')
+        with patch.object(dev, 'run', return_value=failure), patch.object(dev, 'report_address_pool_exhaustion') as report:
+            with self.assertRaises(subprocess.CalledProcessError) as caught:
+                dev.compose_run(['docker', 'compose'], capture=True)
+            self.assertEqual(caught.exception.returncode, 17)
+            report.assert_called_once()
+
+    def test_other_failures_do_not_trigger_pool_advice(self):
+        failure = subprocess.CompletedProcess(['docker', 'compose'], 3, '', 'Connection refused\n')
+        with patch.object(dev, 'run', return_value=failure), patch.object(dev, 'report_address_pool_exhaustion') as report:
+            self.assertEqual(dev.compose_run(['docker', 'compose'], capture=True, check=False).returncode, 3)
+            report.assert_not_called()
+
+    def test_diagnostic_excludes_live_projects_and_never_mutates_docker(self):
+        networks = [{'ID': 'a', 'Name': 'finished_default', 'Driver': 'bridge'},
+                    {'ID': 'b', 'Name': 'active_default', 'Driver': 'bridge'},
+                    {'ID': 'c', 'Name': 'empty_default', 'Driver': 'bridge'}]
+        containers = [{'State': 'exited', 'Labels': 'com.docker.compose.project=finished'},
+                      {'State': 'running', 'Labels': 'com.docker.compose.project=active'}]
+        replies = ['\n'.join(map(json.dumps, networks)), '\n'.join(map(json.dumps, containers))]
+        replies += [json.dumps([{'Labels': {'com.docker.compose.project': p}}])
+                    for p in ['finished', 'active', 'empty']]
+        results = [subprocess.CompletedProcess([], 0, reply) for reply in replies]
+        with patch.object(dev, 'run', side_effect=results) as run, patch('sys.stderr', new_callable=io.StringIO) as output:
+            dev.report_address_pool_exhaustion()
+            self.assertIn('Review owner finished', output.getvalue())
+            self.assertIn('Review owner empty', output.getvalue())
+            self.assertNotIn('Review owner active', output.getvalue())
+            for call in run.call_args_list:
+                self.assertIn(call.args[0][1:3], [['network', 'ls'], ['network', 'inspect'], ['ps', '-a']])
+
+    def test_failed_diagnostic_stays_advisory(self):
+        with patch.object(dev, 'run', side_effect=subprocess.CalledProcessError(1, ['docker'])), patch('sys.stderr', new_callable=io.StringIO) as output:
+            dev.report_address_pool_exhaustion()
+            self.assertIn('Original command failure is preserved', output.getvalue())
 
 
 class SnapshotTests(unittest.TestCase):
