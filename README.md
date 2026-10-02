@@ -157,3 +157,13 @@ snapshot. These actions also work in the original design-only checkout; no
 new repository script is required. Replace this recipe after creating and
 qualifying the real Unity project. Do not invent an Editor pin or copy another
 game's project settings.
+
+## Arkhiv bootstrap
+
+Use profile `arkhiv` for the `arkhiv-politik` checkout (origin
+`subculture-collective/arkhiv`). The installer recognizes the checkout alias.
+Go 1.26, Node 24, and pnpm 10.33.0 are supplied by the tools image.
+Start Dev runs the Go service and Vite; `/api/health` checks the API through
+the frontend proxy. PostgreSQL is isolated but not connected to the bootstrap
+API. Test runs `make test`; Check Code runs the repository's full `make verify`.
+There is no live ingestion, archive payload, database migration, or reader yet.

@@ -287,5 +287,22 @@
       "APP_ENV": "test"
     },
     "notes": "Design-document source preview only: /design/. Python standard library; no dependencies, database, Unity Editor, playable build, or gameplay tests. Markdown is served as source, not rendered HTML."
+  },
+  "arkhiv": {
+    "aliases": [
+      "arkhiv-politik"
+    ],
+    "setup": "pnpm --dir web install --frozen-lockfile; cd backend; go mod download",
+    "start": "(cd backend && go run ./cmd/app) & cd web; exec pnpm dev --host 0.0.0.0 --port 5173 --strictPort",
+    "port": 5173,
+    "health": "/api/health",
+    "db": "postgres:17",
+    "env": {
+      "API_ADDR": ":8080"
+    },
+    "test": "make test",
+    "verify": "make verify",
+    "test_env": {},
+    "notes": "Bootstrap only: process health and collection preparation page. PostgreSQL is isolated but not yet used by the API. No live ingestion or document storage."
   }
 }
