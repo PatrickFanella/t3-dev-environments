@@ -312,5 +312,25 @@
       "db"
     ],
     "test_db": "postgres:15"
+  },
+  "dedhed": {
+    "setup": "pnpm --dir web install --frozen-lockfile; cd backend; go mod download",
+    "start": "(cd backend && go run ./cmd/dedhed migrate && go run ./cmd/dedhed seed && exec go run ./cmd/dedhed serve) & cd web; exec pnpm dev --host 0.0.0.0 --port 5173 --strictPort",
+    "port": 5173,
+    "health": "/api/ready",
+    "db": "postgres:17",
+    "env": {
+      "API_ADDR": ":8080",
+      "DEDHED_MEDIA": "/workspace/var/media"
+    },
+    "test": "make test",
+    "verify": "make verify",
+    "test_env": {
+      "TEST_DATABASE_URL": "postgres://dev:disposable-dev-only@db:5432/dev?sslmode=disable"
+    },
+    "test_services": [
+      "db"
+    ],
+    "notes": "Synthetic concert library, seekable set playback, and shared station schedule. No live acquisition or relay in isolated preview/test networks. Database tests use separate PostgreSQL 17 state."
   }
 }
