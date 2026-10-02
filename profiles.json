@@ -269,5 +269,30 @@
     "origin_env": [
       "PUBLIC_WEB_URL"
     ]
+  },
+  "arkhiv": {
+    "aliases": [
+      "arkhiv-politik"
+    ],
+    "setup": "pnpm --dir web install --frozen-lockfile; cd backend; go mod download",
+    "start": "(cd backend && go run ./cmd/arkhiv migrate && go run ./cmd/arkhiv seed-fixture && exec go run ./cmd/app) & cd web; exec pnpm dev --host 0.0.0.0 --port 5173 --strictPort",
+    "port": 5173,
+    "health": "/api/ready",
+    "db": "postgres:17",
+    "env": {
+      "API_ADDR": ":8080",
+      "ARKHIV_ARCHIVE": "/workspace/var/archive",
+      "ARKHIV_FIXTURE": "1"
+    },
+    "test": "make test",
+    "verify": "make verify",
+    "test_env": {
+      "TEST_DATABASE_URL": "postgres://dev:disposable-dev-only@db:5432/dev?sslmode=disable"
+    },
+    "notes": "Local catalog, preservation and PDF reader with synthetic collections. Tests use disposable PostgreSQL. Live acquisition remains outside isolated preview/test networks. PostgreSQL 15 matches the tools image pg_dump; homelab PostgreSQL 17 recovery is a separate qualification.",
+    "test_services": [
+      "db"
+    ],
+    "test_db": "postgres:15"
   }
 }
