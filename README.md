@@ -119,6 +119,20 @@ which actions were exercised and their results.
 
 ## Maintenance and rollback
 
+If Docker reports `all predefined address pools have been fully subnetted`, the
+launcher lists Compose projects whose containers are stopped or absent. These
+are ownership clues, not permission to remove another thread's environment.
+Use the owning worktree's Stop Dev action to release its containers and networks
+while keeping preview data. The launcher never prunes networks automatically and
+preserves the failed command's exit status even if the diagnostic cannot run.
+
+For hosts with many concurrent projects, configure Docker `default-address-pools`
+with smaller subnets after checking LAN, VPN, and existing network ranges.
+This setting needs a daemon restart. Preserve the existing daemon configuration,
+back it up, validate it with `dockerd --validate`, and coordinate the restart with
+active jobs. Existing networks retain their subnets; the new pool applies to new
+networks. Record host changes and rollback in the canonical host briefing.
+
 Authoring source on Kvant: `~/Work/Tools/t3-dev-environments`.
 Installed launcher on each host: `~/.local/share/t3-dev-environments`.
 Runtime state: `~/.local/state/t3-dev-environments/fleet`.
