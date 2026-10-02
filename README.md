@@ -152,3 +152,7 @@ script entries from T3 project overrides. Compare the saved settings with the
 current file before restoring anything; do not replace subsequent user edits.
 Remote development checkouts and retained volumes can remain for recovery.
 No application production deployment is part of this setup.
+
+Arkhiv uses profile `arkhiv` for the `arkhiv-politik` checkout alias, catalog
+fixtures, and the repository verification gate. Recipe `test_db` selects the
+disposable test database independently of the retained preview version.

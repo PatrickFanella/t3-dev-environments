@@ -77,3 +77,20 @@ The launcher supports old worktree paths without modifying their Git metadata. M
 ## Ownership
 
 Authoring source on Kvant: `~/Work/Tools/t3-dev-environments`. Installed guide: `~/.local/share/t3-dev-environments/AGENT-GUIDE.md` on all three hosts. Edit the authoring source and redeploy; do not maintain separate host copies. The README describes operations and rollback. Repository AGENTS.md requirements and the user's task remain authoritative.
+
+## Arkhiv private pilot
+
+Use profile `arkhiv` for the `arkhiv-politik` checkout (origin
+`subculture-collective/arkhiv`). Go 1.26, Node 24, pnpm 10.33.0, and Poppler
+are supplied by the shared tools image. Start Dev applies migrations and seeds
+two synthetic collections before starting Go/Vite. `/api/ready` checks the
+catalog through the frontend proxy. `ARKHIV_ARCHIVE` points to disposable local
+preview storage; live documents are acquired separately on the homelab.
+
+The retained preview database remains PostgreSQL 17. `test_db` selects PostgreSQL
+15 only in disposable test snapshots to match the shared `pg_dump` client.
+Never downgrade or remove a retained preview volume to resolve a client mismatch.
+Test runs `make test`; Check Code runs `make verify`, including catalog integration
+when `TEST_DATABASE_URL` names the isolated launcher service. The separate
+`make test-browser` gate uses PostgreSQL 17 and a matching runtime backup client.
+Application/test isolation remains enabled; no live acquisition occurs there.

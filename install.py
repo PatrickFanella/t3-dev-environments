@@ -39,6 +39,9 @@ installed = []
 for ident, title, root, base_scripts in projects:
     name = Path(root).name
     if name not in profiles:
+        name = next((key for key, recipe in profiles.items()
+                     if name in recipe.get('aliases', [])), None)
+    if name is None:
         continue
     # Preserve the already-qualified repository-owned Subcult OS setup on Kvant.
     if name == 'subcult-os' and socket.gethostname().lower() == 'kvant':
