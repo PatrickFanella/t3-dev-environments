@@ -332,5 +332,30 @@
       "db"
     ],
     "notes": "Synthetic concert library, seekable set playback, and shared station schedule. No live acquisition or relay in isolated preview/test networks. Database tests use separate PostgreSQL 17 state."
+  },
+  "vhness": {
+    "aliases": [
+      "VHNESS"
+    ],
+    "identity": [
+      "docs/adr/0001-metadata-and-delivery.md"
+    ],
+    "setup": "pnpm --dir web install --frozen-lockfile; cd backend; go mod download",
+    "start": "(cd backend && go run ./cmd/vhness migrate && go run ./cmd/vhness seed && exec go run ./cmd/vhness serve) & cd web; exec pnpm dev --host 0.0.0.0 --port 5173 --strictPort",
+    "port": 5173,
+    "health": "/api/ready",
+    "db": "postgres:17",
+    "env": {
+      "API_ADDR": ":8080"
+    },
+    "test": "make test",
+    "verify": "make verify",
+    "test_env": {
+      "TEST_DATABASE_URL": "postgres://dev:disposable-dev-only@db:5432/dev?sslmode=disable"
+    },
+    "test_services": [
+      "db"
+    ],
+    "notes": "Metadata-only Democracy Now! catalog with synthetic records. No source video storage or media downloads; live metadata/source playback requires separate operator qualification. Tests use a separate disposable PostgreSQL database."
   }
 }

@@ -121,3 +121,12 @@ on-demand set playback and shared scheduling use local audio; the isolated app
 and test networks never acquire real music. Check Code runs `make verify`;
 database integration uses the separate PostgreSQL 17 test service. Live source
 review, acquisition, private qualification, and recovery are separate workflows.
+
+## VHNESS metadata foundation
+
+Use profile `vhness` for the VHNESS repository. It seeds three synthetic metadata
+records, applies checksum-locked migrations, and starts Go/Vite with PostgreSQL
+17. No video is acquired or stored. Application/test networks cannot reach
+Internet Archive. Tests use a separate disposable PostgreSQL service. Check Code
+runs `make verify`, including database tests when `TEST_DATABASE_URL` is present.
+Actual source streaming and pilot qualification require separate evidence.
