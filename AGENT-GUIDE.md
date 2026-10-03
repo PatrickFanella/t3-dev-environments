@@ -121,3 +121,15 @@ on-demand set playback and shared scheduling use local audio; the isolated app
 and test networks never acquire real music. Check Code runs `make verify`;
 database integration uses the separate PostgreSQL 17 test service. Live source
 review, acquisition, private qualification, and recovery are separate workflows.
+
+## Kvant disposable-test isolation
+
+On Kvant, Test and Check Code may use the optional backend in
+`~/.config/t3-dev-environments/test-backend.json`. Kuznya is a local VM with
+a separate Docker daemon. Only filtered disposable snapshots are shared with
+it; the original worktree and preview data remain on Kvant. Start Dev, Watch,
+Sync and existing previews retain their original backend. A test-backend failure
+is a failure to repair, not permission to unset Docker context or bypass the
+configured isolation. The normal source, snapshot, cleanup and proof rules still
+apply. Repository-owned scripts that do not call this launcher need their own
+explicit backend integration; do not claim they automatically use Kuznya.

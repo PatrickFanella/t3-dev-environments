@@ -200,3 +200,22 @@ on-demand set playback and shared scheduling use local audio; the isolated app
 and test networks never acquire real music. Check Code runs `make verify`;
 database integration uses the separate PostgreSQL 17 test service. Live source
 review, acquisition, private qualification, and recovery are separate workflows.
+
+## Disposable tests on an isolated Docker host
+
+A host can route only Test and Check Code to another Docker context. Configure
+`~/.config/t3-dev-environments/test-backend.json` with an existing context and
+an absolute snapshot directory mounted at the same path on that Docker host:
+
+```json
+{"context": "kuznya", "snapshot_root": "/mnt/data2/kvant-ci-isolation/test-workspaces"}
+```
+
+The launcher copies the same filtered source snapshot into that directory.
+Dependency setup, checks, cleanup and network diagnostics use the selected
+context. Start Dev, existing previews and their databases keep their current
+Docker host and paths. The existing host test lock still serializes local runs.
+An unavailable context or shared directory fails the action; it does not fall
+back to creating test networks on the desktop host. Remove the configuration
+to return future test runs to the original host. Let an active run finish before
+changing the backend.
