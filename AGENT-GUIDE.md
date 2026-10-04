@@ -113,6 +113,25 @@ when `TEST_DATABASE_URL` names the isolated launcher service. The separate
 `make test-browser` gate uses PostgreSQL 17 and a matching runtime backup client.
 Application/test isolation remains enabled; no live acquisition occurs there.
 
+## Rekolekt core (`hasanara`)
+
+Use profile `hasanara` for Rekolekt core; its origin may end in
+`transcript-create.git` or `rekolekt.git`. The recipe selects a layout from the
+checkout. Current `main` is headless (backend and API only): Start Dev applies
+migrations and serves uvicorn on the profile port, and readiness checks `/health`.
+Test applies migrations and runs the non-integration pytest suite. Check Code
+follows `scripts/verify.sh`, including integration tests against a disposable
+`hasanara_test` database, but omits its Compose services and the networked
+`pip-audit` steps. Setup builds the virtual environment from the newest CPython
+3.11 that the pinned uv 0.12.22 installs (3.11.17 on October 4, 2026). The tools
+image's Python 3.11.2 has older `HTTPError` and CSV quoting behavior, and two
+repository tests fail with it.
+
+A checkout that still contains `frontend/package.json` keeps the earlier recipe:
+npm setup, the Vite preview proxying the API, `/api/health` readiness, and
+frontend checks before the backend suite. Only its Python interpreter changed,
+for the same two tests.
+
 ## Dedhed development
 
 Use profile `dedhed` for the concert library and radio application. Start seeds
