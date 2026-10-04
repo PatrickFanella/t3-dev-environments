@@ -121,6 +121,15 @@ def identify(root):
     raise ValueError('No reviewed recipe for this repository. Available: ' + ', '.join(PROFILES))
 
 
+def resolve_recipe(recipe, root):
+    """Apply the first layout override whose marker file exists in the checkout."""
+    base = {key: value for key, value in recipe.items() if key != 'layouts'}
+    for layout in recipe.get('layouts', []):
+        if (root / layout['when']).is_file():
+            return {**base, **layout['recipe']}
+    return base
+
+
 @contextlib.contextmanager
 def lock(path):
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -133,7 +142,8 @@ class Environment:
     def __init__(self, root, profile, test=False):
         self.root = root.resolve()
         self.name = profile
-        self.recipe = PROFILES[profile]
+        # Older branches can keep a recipe layout that their current branch removed.
+        self.recipe = resolve_recipe(PROFILES[profile], self.root)
         self.key = hashlib.sha256(str(self.root).encode()).hexdigest()[:12]
         self.project = f't3dev-{profile}-{self.key}' + ('-test' if test else '')
         self.docker = ['docker']

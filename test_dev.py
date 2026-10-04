@@ -150,6 +150,39 @@ class SnapshotTests(unittest.TestCase):
         self.assertIn('tmpfs', json.loads(test.file.read_text())['services']['db'])
 
 
+class LayoutTests(unittest.TestCase):
+    def test_hasanara_selects_backend_or_frontend_layout_from_checkout(self):
+        legacy = dev.PROFILES['hasanara']['layouts'][0]['recipe']
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with patch.object(dev, 'STATE', root / 'state'):
+                headless = dev.Environment(root, 'hasanara')
+                self.assertNotIn('layouts', headless.recipe)
+                self.assertEqual(headless.recipe['health'], '/health')
+                for action in ['setup', 'start', 'test', 'verify']:
+                    self.assertNotIn('frontend', headless.recipe[action])
+                    self.assertNotIn('npm', headless.recipe[action])
+                self.assertNotIn(' & ', headless.recipe['start'])
+                self.assertIn(f"--port {headless.recipe['port']}", headless.recipe['start'])
+                self.assertIn('run_migrations.py upgrade', headless.recipe['test'])
+                (root / 'frontend').mkdir()
+                (root / 'frontend/package.json').write_text('{}')
+                frontend = dev.Environment(root, 'hasanara')
+                for key, value in legacy.items():
+                    self.assertEqual(frontend.recipe[key], value)
+                self.assertEqual(frontend.recipe['health'], '/api/health')
+                self.assertTrue(frontend.recipe['setup'].startswith('npm --prefix frontend ci'))
+                self.assertTrue(frontend.recipe['setup'].endswith(headless.recipe['setup']))
+                for env in [headless, frontend]:
+                    self.assertEqual(env.recipe['env'], dev.PROFILES['hasanara']['env'])
+                    self.assertEqual(env.recipe['test_env'], dev.PROFILES['hasanara']['test_env'])
+
+    def test_profiles_without_layouts_are_unchanged(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            with patch.object(dev, 'STATE', Path(temporary) / 'state'):
+                self.assertEqual(dev.Environment(Path(temporary), 'dash').recipe, dev.PROFILES['dash'])
+
+
 if __name__ == '__main__':
     unittest.main()
 
