@@ -19,7 +19,7 @@ import urllib.request
 HERE = Path(__file__).resolve().parent
 STATE = Path.home() / '.local/state/t3-dev-environments/fleet'
 TEST_BACKEND = Path.home() / '.config/t3-dev-environments/test-backend.json'
-IMAGE = 't3-dev-tools:20260924-v3'
+IMAGE = 't3-dev-tools:20261003-v4'
 PROFILES = json.loads((HERE / 'profiles.json').read_text())
 BLOCKED_NAMES = {'client_secret.json', 'credentials.json', 'token.json', 'tokens.json'}
 EXCLUDED_PARTS = {'.git', 'node_modules', '.venv', '.next', '__pycache__', '.t3', '.claude', '.blacktower', '.playwright-cli'}

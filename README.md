@@ -203,6 +203,11 @@ review, acquisition, private qualification, and recovery are separate workflows.
 
 ## VHNESS metadata foundation
 
+Tools image `20261003-v4` includes FFmpeg/ffprobe for bounded duration checks of
+already prepared audio derivatives, alongside the existing Poppler tools.
+Changing the tools version affects future setup actions; it does not restart
+running previews. Keep the previous image available for rollback.
+
 Use profile `vhness` for the VHNESS repository. It seeds three synthetic metadata
 records, applies checksum-locked migrations, and starts Go/Vite with PostgreSQL
 17. No video is acquired or stored. Application/test networks cannot reach
