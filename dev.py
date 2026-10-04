@@ -18,7 +18,8 @@ import urllib.request
 
 HERE = Path(__file__).resolve().parent
 STATE = Path.home() / '.local/state/t3-dev-environments/fleet'
-IMAGE = 't3-dev-tools:20260924-v3'
+TEST_BACKEND = Path.home() / '.config/t3-dev-environments/test-backend.json'
+IMAGE = 't3-dev-tools:20261003-v4'
 PROFILES = json.loads((HERE / 'profiles.json').read_text())
 BLOCKED_NAMES = {'client_secret.json', 'credentials.json', 'token.json', 'tokens.json'}
 EXCLUDED_PARTS = {'.git', 'node_modules', '.venv', '.next', '__pycache__', '.t3', '.claude', '.blacktower', '.playwright-cli'}
@@ -29,13 +30,14 @@ def run(argv, *, cwd=None, capture=False, check=True, **kwargs):
                           stdout=subprocess.PIPE if capture else None, **kwargs)
 
 
-def report_address_pool_exhaustion():
+def report_address_pool_exhaustion(docker=None):
     """List stopped Compose owners without removing any of their resources."""
+    docker = docker or ['docker']
     print('Docker address pools are exhausted. Stop a finished environment to release its network; '
           'do not prune other threads or remove data volumes.', file=sys.stderr)
     try:
-        networks = run(['docker', 'network', 'ls', '--format', '{{json .}}'], capture=True)
-        containers = run(['docker', 'ps', '-a', '--format', '{{json .}}'], capture=True)
+        networks = run([*docker, 'network', 'ls', '--format', '{{json .}}'], capture=True)
+        containers = run([*docker, 'ps', '-a', '--format', '{{json .}}'], capture=True)
         owners = {}
         for line in containers.stdout.splitlines():
             container = json.loads(line)
@@ -49,7 +51,7 @@ def report_address_pool_exhaustion():
             # Network ls does not expose labels; inspect only Compose networks.
             if network.get('Driver') != 'bridge':
                 continue
-            inspected = run(['docker', 'network', 'inspect', network['ID']], capture=True)
+            inspected = run([*docker, 'network', 'inspect', network['ID']], capture=True)
             project = (json.loads(inspected.stdout)[0].get('Labels') or {}).get('com.docker.compose.project')
             if project and all(state in {'exited', 'created', 'dead'} for state in owners.get(project, [])):
                 groups.setdefault(project, []).append(network['Name'])
@@ -78,7 +80,11 @@ def compose_run(argv, *, capture=False, check=True):
                 tail = (tail + line)[-65536:]
             result = subprocess.CompletedProcess(argv, process.wait(), stderr=tail)
     if result.returncode and 'all predefined address pools have been fully subnetted' in result.stderr:
-        report_address_pool_exhaustion()
+        docker = argv[:argv.index('compose')]
+        if docker == ['docker']:
+            report_address_pool_exhaustion()
+        else:
+            report_address_pool_exhaustion(docker)
     if check:
         result.check_returncode()
     return result
@@ -130,7 +136,19 @@ class Environment:
         self.recipe = PROFILES[profile]
         self.key = hashlib.sha256(str(self.root).encode()).hexdigest()[:12]
         self.project = f't3dev-{profile}-{self.key}' + ('-test' if test else '')
-        self.directory = STATE / self.project
+        self.docker = ['docker']
+        snapshot_root = STATE
+        if test and TEST_BACKEND.exists():
+            backend = json.loads(TEST_BACKEND.read_text())
+            context = backend.get('context')
+            shared_root = Path(backend.get('snapshot_root', ''))
+            if not isinstance(context, str) or not context.strip() or not shared_root.is_absolute():
+                raise ValueError('Test backend requires a Docker context and absolute shared snapshot_root.')
+            if not shared_root.is_dir():
+                raise ValueError('Test backend snapshot_root is unavailable; restore the VM share before testing.')
+            self.docker += ['--context', context]
+            snapshot_root = shared_root
+        self.directory = snapshot_root / self.project
         self.directory.mkdir(parents=True, exist_ok=True)
         self.source = self.directory / 'source'
         self.source.mkdir(exist_ok=True)
@@ -255,17 +273,17 @@ class Environment:
         self.file.write_text(json.dumps(config, indent=2).replace('$', '$$'))
 
     def dc(self, *args, capture=False, check=True):
-        return compose_run(['docker', 'compose', '--env-file', '/dev/null', '-p', self.project, '-f', str(self.file), *args], capture=capture, check=check)
+        return compose_run([*self.docker, 'compose', '--env-file', '/dev/null', '-p', self.project, '-f', str(self.file), *args], capture=capture, check=check)
 
     def setup(self):
         self.snapshot()
         self.compose()
-        if run(['docker', 'image', 'inspect', IMAGE], capture=True, check=False, stderr=subprocess.DEVNULL).returncode:
-            run(['docker', 'build', '-t', IMAGE, str(HERE)])
+        if run([*self.docker, 'image', 'inspect', IMAGE], capture=True, check=False, stderr=subprocess.DEVNULL).returncode:
+            run([*self.docker, 'build', '-t', IMAGE, str(HERE)])
         try:
             self.dc('run', '--rm', '--no-deps', 'tools', 'bash', '-euc', self.recipe['setup'])
         finally:
-            run(['docker', 'network', 'rm', self.project + '_dependencies'],
+            run([*self.docker, 'network', 'rm', self.project + '_dependencies'],
                 capture=True, check=False, stderr=subprocess.DEVNULL)
 
     def url(self):

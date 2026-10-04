@@ -130,3 +130,15 @@ records, applies checksum-locked migrations, and starts Go/Vite with PostgreSQL
 Internet Archive. Tests use a separate disposable PostgreSQL service. Check Code
 runs `make verify`, including database tests when `TEST_DATABASE_URL` is present.
 Actual source streaming and pilot qualification require separate evidence.
+
+## Kvant disposable-test isolation
+
+On Kvant, Test and Check Code may use the optional backend in
+`~/.config/t3-dev-environments/test-backend.json`. Kuznya is a local VM with
+a separate Docker daemon. Only filtered disposable snapshots are shared with
+it; the original worktree and preview data remain on Kvant. Start Dev, Watch,
+Sync and existing previews retain their original backend. A test-backend failure
+is a failure to repair, not permission to unset Docker context or bypass the
+configured isolation. The normal source, snapshot, cleanup and proof rules still
+apply. Repository-owned scripts that do not call this launcher need their own
+explicit backend integration; do not claim they automatically use Kuznya.

@@ -152,3 +152,39 @@ class SnapshotTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TestBackendTests(unittest.TestCase):
+    def test_vm_backend_applies_only_to_disposable_tests(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            shared = base / 'shared'
+            shared.mkdir()
+            config = base / 'backend.json'
+            config.write_text(json.dumps({'context': 'kuznya', 'snapshot_root': str(shared)}))
+            with patch.object(dev, 'TEST_BACKEND', config), patch.object(dev, 'STATE', base / 'host'):
+                preview = dev.Environment(base, 'dash')
+                test = dev.Environment(base, 'dash', test=True)
+                self.assertEqual(preview.docker, ['docker'])
+                self.assertEqual(preview.directory.parent, base / 'host')
+                self.assertEqual(test.docker, ['docker', '--context', 'kuznya'])
+                self.assertEqual(test.directory.parent, shared)
+                test.file.write_text('{}')
+                with patch.object(dev, 'compose_run') as compose:
+                    test.dc('down')
+                    self.assertEqual(compose.call_args.args[0][:4], ['docker', '--context', 'kuznya', 'compose'])
+
+    def test_missing_vm_share_fails_without_host_fallback(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            config = base / 'backend.json'
+            config.write_text(json.dumps({'context': 'kuznya', 'snapshot_root': str(base / 'missing')}))
+            with patch.object(dev, 'TEST_BACKEND', config):
+                with self.assertRaisesRegex(ValueError, 'unavailable'):
+                    dev.Environment(base, 'dash', test=True)
+
+    def test_remote_pool_diagnostic_stays_on_selected_daemon(self):
+        failure = subprocess.CompletedProcess([], 17, '', 'all predefined address pools have been fully subnetted')
+        with patch.object(dev, 'run', return_value=failure), patch.object(dev, 'report_address_pool_exhaustion') as report:
+            dev.compose_run(['docker', '--context', 'kuznya', 'compose', 'up'], capture=True, check=False)
+            report.assert_called_once_with(['docker', '--context', 'kuznya'])
