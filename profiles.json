@@ -369,5 +369,27 @@
       "db"
     ],
     "notes": "Metadata-only Democracy Now! catalog with synthetic records. No source video storage or media downloads; live metadata/source playback requires separate operator qualification. Tests use a separate disposable PostgreSQL database."
+  },
+  "kollektor": {
+    "aliases": [
+      "Kollektor"
+    ],
+    "identity": [
+      "kollektor/app.py"
+    ],
+    "setup": "python3 -m venv /cache/uv-tools && /cache/uv-tools/bin/pip install uv==0.12.22 && /cache/uv-tools/bin/uv sync --frozen --python 3.12",
+    "start": "exec /cache/venv/bin/python -m kollektor --host 0.0.0.0 --port 18763",
+    "port": 18763,
+    "health": "/api/health",
+    "env": {
+      "UV_PYTHON_INSTALL_DIR": "/cache/python",
+      "UV_CACHE_DIR": "/cache/uv",
+      "UV_PROJECT_ENVIRONMENT": "/cache/venv",
+      "KOLLEKTOR_DB": "/data/kollektor.sqlite"
+    },
+    "test": "/cache/venv/bin/pytest -q",
+    "verify": "/cache/venv/bin/pytest -q && /cache/venv/bin/ruff check . && /cache/venv/bin/ruff format --check . && node --check kollektor/static/app.js",
+    "test_services": [],
+    "notes": "Private curation workspace. No Archive.org acquisition, catalog credentials, publication or live-provider calls in isolated tests."
   }
 }
