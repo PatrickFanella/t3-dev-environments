@@ -161,3 +161,13 @@ is a failure to repair, not permission to unset Docker context or bypass the
 configured isolation. The normal source, snapshot, cleanup and proof rules still
 apply. Repository-owned scripts that do not call this launcher need their own
 explicit backend integration; do not claim they automatically use Kuznya.
+
+## Kollektor curation workbench
+
+Use profile `kollektor` for the private Archive curation application. Setup installs
+uv 0.12.22 and CPython 3.12 into this worktree's cache, then uses the frozen lockfile.
+Start serves the FastAPI application on port 18763; `/api/health` checks readiness.
+The SQLite database is separate from other worktrees. Tests use temporary SQLite
+files and mocked Archive/core responses. Check Code runs pytest, Ruff lint and
+format checks, and the browser JavaScript syntax check. These checks do not prove
+live Archive discovery, a core connection, public access approval or publication.
