@@ -254,3 +254,17 @@ An unavailable context or shared directory fails the action; it does not fall
 back to creating test networks on the desktop host. Remove the configuration
 to return future test runs to the original host. Let an active run finish before
 changing the backend.
+
+## Baikal development runtime
+
+The Productivity Suite recipe retains Baikal 0.10.1 and its original volume paths
+and UID/GID 101, using PHP 8.3.36 on Apache. Its pinned application and PHP bases
+are recorded in `images/baikal/Dockerfile`. The installer copies this build source
+next to the launcher; `@launcher/` build contexts resolve against that location.
+Compose builds the versioned local image when a host does not have it.
+
+Existing previews need their Baikal service recreated to receive the new runtime.
+Back up the stopped Specific/config volumes first, preserve those exact volumes,
+and verify DAV responses and SQLite integrity afterward. Recreating a service must
+not renew anonymous volumes or remove the worktree's application data. This image
+does not upgrade Baikal's schema or establish real calendar-client acceptance.

@@ -15,6 +15,8 @@ destination.mkdir(parents=True, exist_ok=True)
 for name in ['dev.py', 'remote.py', 'profiles.json', 'Dockerfile', 'install.py', 'README.md', 'AGENT-GUIDE.md']:
     if HERE != destination:
         shutil.copy2(HERE / name, destination / name)
+if HERE != destination and (HERE / 'images').is_dir():
+    shutil.copytree(HERE / 'images', destination / 'images', dirs_exist_ok=True)
 bin_dir = home / '.local/bin'
 bin_dir.mkdir(parents=True, exist_ok=True)
 for command, script in [('t3-dev', 'dev.py'), ('t3-preview', 'remote.py')]:

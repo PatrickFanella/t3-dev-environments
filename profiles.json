@@ -146,7 +146,8 @@
     },
     "services": {
       "baikal": {
-        "image": "ckulka/baikal:0.10.1-nginx@sha256:434bdd162247cc6aa6f878c9b4dce6216e39e79526b980453b13812d5f8ebf4b",
+        "image": "local/t3-baikal:0.10.1-php8.3.36-20261022",
+        "build": {"context": "@launcher/images/baikal"},
         "mem_limit": "384m",
         "cpus": 0.5
       }

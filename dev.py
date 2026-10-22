@@ -244,7 +244,10 @@ class Environment:
         if self.recipe.get('redis'):
             services['redis'] = {'image': 'redis:7-alpine', 'command': ['redis-server', '--save', '', '--appendonly', 'no'], 'mem_limit': '128m', 'cpus': 0.5}
         for name, service in self.recipe.get('services', {}).items():
-            services[name] = service
+            services[name] = {**service}
+            if service.get('build', {}).get('context', '').startswith('@launcher/'):
+                services[name]['build'] = {**service['build'], 'context': str(
+                    HERE / service['build']['context'].removeprefix('@launcher/'))}
         common = {
             'image': IMAGE, 'init': True, 'user': f'{os.getuid()}:{os.getgid()}',
             'working_dir': '/workspace', 'volumes': [f'{self.source}:/workspace:z', f'{cache}:/cache:z', f'{data}:/data:z'],
