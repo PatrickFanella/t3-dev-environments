@@ -268,3 +268,6 @@ Back up the stopped Specific/config volumes first, preserve those exact volumes,
 and verify DAV responses and SQLite integrity afterward. Recreating a service must
 not renew anonymous volumes or remove the worktree's application data. This image
 does not upgrade Baikal's schema or establish real calendar-client acceptance.
+
+The shared loopback preview proxy uses pinned NGINX 1.30.6. Existing proxies
+need recreation to receive the fix; application containers and data stay in place.

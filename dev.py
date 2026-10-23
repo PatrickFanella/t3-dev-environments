@@ -271,7 +271,7 @@ class Environment:
                 'proxy_http_version 1.1; proxy_set_header Host $http_host; '
                 'proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection "upgrade"; '
                 'proxy_read_timeout 300s; } } }\n')
-            services['preview'] = {'image': 'nginx:1.28-alpine', 'networks': ['default', 'preview'],
+            services['preview'] = {'image': 'nginx:1.30.6-alpine@sha256:47928bf67eb62a1863cb08d9ecb52d3e704304ba614eaee17884204677702951', 'networks': ['default', 'preview'],
                 'ports': [f'127.0.0.1:{preview_port}:8080'], 'volumes': [f'{proxy}:/etc/nginx/nginx.conf:ro,z'],
                 'depends_on': ['app'], 'mem_limit': '64m', 'cpus': 0.25,
                 'security_opt': ['no-new-privileges:true']}
