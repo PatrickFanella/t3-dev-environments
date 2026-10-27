@@ -16,6 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
+        env:
+          AGENT_TOOLSDIRECTORY: ${{ runner.temp }}/python-tools-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
+          RUNNER_TOOL_CACHE: ${{ runner.temp }}/python-tools-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}
         with:
           python-version: "3.13"
       - name: Run existing validation
