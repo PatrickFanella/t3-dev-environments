@@ -126,6 +126,14 @@ Use the owning worktree's Stop Dev action to release its containers and networks
 while keeping preview data. The launcher never prunes networks automatically and
 preserves the failed command's exit status even if the diagnostic cannot run.
 
+Test removes its stack, including volumes, when it finishes, fails, is
+interrupted, or receives SIGTERM or SIGHUP. Start Dev removes stopped
+containers and networks of stacks whose recorded worktree no longer exists and
+keeps their volumes. `t3-dev gc` lists those stacks and stopped local test
+stacks; `t3-dev gc --apply` also removes their named volumes. Stacks without an
+`identity.json` record are reported and left in place. Source snapshots in the
+state directory are not removed.
+
 For hosts with many concurrent projects, configure Docker `default-address-pools`
 with smaller subnets after checking LAN, VPN, and existing network ranges.
 This setting needs a daemon restart. Preserve the existing daemon configuration,

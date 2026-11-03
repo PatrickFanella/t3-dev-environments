@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import shutil
 import shlex
+import signal
 import socket
 import subprocess
 import sys
@@ -88,6 +89,61 @@ def compose_run(argv, *, capture=False, check=True):
     if check:
         result.check_returncode()
     return result
+
+
+PROJECT_LABEL = 'com.docker.compose.project'
+STOPPED_STATES = {'exited', 'created', 'dead'}
+
+
+def find_stale_projects(docker=None):
+    """Return {project: reason} for launcher stacks that no current worktree owns.
+
+    A preview stack is stale when nothing in it is running and the worktree recorded
+    in its identity.json no longer exists. A local test stack is stale whenever
+    nothing in it is running, because Test always removes its stack on exit.
+    Stacks without an identity record are reported as unknown and left alone.
+    """
+    docker = docker or ['docker']
+    label = '{{.Label "%s"}}' % PROJECT_LABEL
+    states = {}
+    containers = run([*docker, 'ps', '-a', '--filter', f'label={PROJECT_LABEL}',
+                      '--format', label + '\t{{.State}}'], capture=True)
+    for line in containers.stdout.splitlines():
+        project, _, state = line.partition('\t')
+        if project.startswith('t3dev-'):
+            states.setdefault(project, []).append(state)
+    volumes = run([*docker, 'volume', 'ls', '--filter', f'label={PROJECT_LABEL}', '--format', label], capture=True)
+    for project in volumes.stdout.split():
+        if project.startswith('t3dev-'):
+            states.setdefault(project, [])
+    stale, unknown = {}, []
+    for project, container_states in sorted(states.items()):
+        if any(state not in STOPPED_STATES for state in container_states):
+            continue
+        identity = STATE / project / 'identity.json'
+        if project.endswith('-test'):
+            stale[project] = 'leftover test stack'
+        elif not identity.exists():
+            unknown.append(project)
+        else:
+            source = json.loads(identity.read_text()).get('source', '')
+            if not source or not Path(source).is_dir():
+                stale[project] = f'worktree missing: {source}'
+    return stale, unknown
+
+
+def remove_project(project, *, volumes, docker=None):
+    """Remove a stopped stack's containers and networks, and optionally its named volumes."""
+    docker = docker or ['docker']
+    selector = ['--filter', f'label={PROJECT_LABEL}={project}']
+    # Plain docker rm refuses running containers, so a stack restarted meanwhile survives.
+    kinds = [(['ps', '-aq'], ['rm']), (['network', 'ls', '-q'], ['network', 'rm'])]
+    if volumes:
+        kinds.append((['volume', 'ls', '-q'], ['volume', 'rm']))
+    for listing, removal in kinds:
+        names = run([*docker, *listing, *selector], capture=True).stdout.split()
+        if names:
+            run([*docker, *removal, *names], capture=True, check=False)
 
 
 def safe_file(name, tracked=False):
@@ -312,6 +368,13 @@ class Environment:
         return ''
 
     def start(self):
+        stale, _ = find_stale_projects()
+        for project, reason in stale.items():
+            if not project.endswith('-test'):
+                # The owning worktree is gone; keep its named volumes for recovery or gc.
+                print(f'Removing stopped containers and networks of {project} ({reason}); '
+                      'its volumes remain until t3-dev gc --apply.', file=sys.stderr)
+                remove_project(project, volumes=False)
         active = run(['docker', 'ps', '--filter', 'label=com.docker.compose.service=app',
                       '--format', '{{.Label "com.docker.compose.project"}}'], capture=True).stdout.splitlines()
         other = [p for p in active if p.startswith('t3dev-') and p != self.project]
@@ -355,14 +418,42 @@ class Environment:
         self.dc('run', '--rm', '--no-deps', 'checks', 'bash', '-euc', command)
 
 
+def gc(apply=False):
+    # Hold the test lock so a local test stack between steps is not mistaken for a leftover.
+    with lock(STATE / 'host-test.lock'):
+        stale, unknown = find_stale_projects()
+        for project, reason in stale.items():
+            print(f'{"Removing" if apply else "Stale"}: {project} ({reason})')
+            if apply:
+                remove_project(project, volumes=True)
+    for project in unknown:
+        print(f'Skipped (no identity record, owner unknown): {project}')
+    if stale and not apply:
+        print('Run t3-dev gc --apply to remove these containers, networks and named volumes. '
+              'Snapshots under the state directory are kept.')
+    elif not stale:
+        print('No stale t3dev stacks.')
+
+
+def _terminate(signum, frame):
+    # Turn SIGTERM/SIGHUP into SystemExit so finally blocks (test teardown) run.
+    raise SystemExit(128 + signum)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--profile', choices=sorted(PROFILES))
-    parser.add_argument('action', choices=['setup', 'start', 'sync', 'watch', 'test', 'verify', 'url', 'logs', 'stop', 'status', 'list'])
+    parser.add_argument('action', choices=['setup', 'start', 'sync', 'watch', 'test', 'verify', 'url', 'logs', 'stop', 'status', 'list', 'gc'])
+    parser.add_argument('--apply', action='store_true', help='gc only: remove the listed stacks, including their volumes')
     parser.add_argument('--command', help='Explicit shell command inside the isolated test environment (test/verify only)')
     args = parser.parse_args()
     if args.command is not None and (args.action not in {'test', 'verify'} or not args.command.strip()):
         parser.error('--command requires test or verify and a nonempty command')
+    if args.apply and args.action != 'gc':
+        parser.error('--apply requires gc')
+    if args.action == 'gc':
+        gc(args.apply)
+        return
     if args.action == 'list':
         for p in STATE.glob('*/identity.json'):
             print(p.parent.name, json.loads(p.read_text())['source'])
@@ -392,13 +483,13 @@ def main():
                     env.test(args.action == 'verify', args.command)
                 finally:
                     if env.file.exists():
-                        env.dc('--profile', 'tools', 'down', '--volumes', check=False)
+                        env.dc('--profile', 'tools', 'down', '--volumes', '--remove-orphans', check=False)
         elif args.action == 'url':
             print(env.url())
             if env.access_hint():
                 print(env.access_hint())
         elif args.action == 'stop':
-            env.dc('--profile', 'tools', 'down')
+            env.dc('--profile', 'tools', 'down', '--remove-orphans')
         elif args.action == 'logs':
             env.dc('logs', '--tail', '100', '-f', 'app')
         elif args.action == 'status':
@@ -406,6 +497,8 @@ def main():
 
 
 if __name__ == '__main__':
+    signal.signal(signal.SIGTERM, _terminate)
+    signal.signal(signal.SIGHUP, _terminate)
     try:
         main()
     except (ValueError, subprocess.CalledProcessError) as error:
