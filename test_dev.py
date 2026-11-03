@@ -1,7 +1,9 @@
 import json
 import io
 from pathlib import Path
+import signal
 import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -148,6 +150,97 @@ class SnapshotTests(unittest.TestCase):
                 self.assertNotIn('/var/run/docker.sock', str(service))
             self.assertNotIn(str(self.root) + ':', str(config))
         self.assertIn('tmpfs', json.loads(test.file.read_text())['services']['db'])
+
+
+class StaleStackTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.base = Path(self.temp.name)
+        self.state = patch.object(dev, 'STATE', self.base / 'state')
+        self.state.start()
+        self.live = self.base / 'live-worktree'
+        self.live.mkdir()
+        for project, source in [('t3dev-dash-live', self.live), ('t3dev-clpr-gone', self.base / 'deleted'),
+                                ('t3dev-dash-running', self.base / 'deleted-too')]:
+            (dev.STATE / project).mkdir(parents=True)
+            (dev.STATE / project / 'identity.json').write_text(json.dumps({'source': str(source)}))
+
+    def tearDown(self):
+        self.state.stop()
+        self.temp.cleanup()
+
+    def docker(self, containers, volumes):
+        def fake(argv, **kwargs):
+            if argv[1:3] == ['ps', '-a']:
+                return subprocess.CompletedProcess(argv, 0, '\n'.join(containers))
+            if argv[1:3] == ['volume', 'ls']:
+                return subprocess.CompletedProcess(argv, 0, '\n'.join(volumes))
+            raise AssertionError(f'unexpected docker call {argv}')
+        return fake
+
+    def test_only_unowned_stopped_stacks_are_stale(self):
+        containers = ['t3dev-dash-live\texited', 't3dev-clpr-gone\texited', 't3dev-clpr-gone\tcreated',
+                      't3dev-dash-running\trunning', 't3dev-dash-abc-test\texited', 'unrelated\texited',
+                      't3dev-augr-noidentity\texited']
+        volumes = ['t3dev-dash-orphanvol', 'production_db']
+        with patch.object(dev, 'run', side_effect=self.docker(containers, volumes)):
+            stale, unknown = dev.find_stale_projects()
+        self.assertEqual(set(stale), {'t3dev-clpr-gone', 't3dev-dash-abc-test'})
+        self.assertEqual(set(unknown), {'t3dev-augr-noidentity', 't3dev-dash-orphanvol'})
+
+    def test_remove_project_scopes_by_label_and_keeps_volumes_unless_requested(self):
+        calls = []
+        def fake(argv, **kwargs):
+            calls.append(argv)
+            return subprocess.CompletedProcess(argv, 0, 'id1\n' if argv[-1].startswith('label=') else '')
+        with patch.object(dev, 'run', side_effect=fake):
+            dev.remove_project('t3dev-clpr-gone', volumes=False)
+        removals = [c for c in calls if 'rm' in c]
+        self.assertEqual(removals, [['docker', 'rm', 'id1'], ['docker', 'network', 'rm', 'id1']])
+        for call in calls:
+            if 'rm' not in call:
+                self.assertEqual(call[-1], 'label=com.docker.compose.project=t3dev-clpr-gone')
+        calls.clear()
+        with patch.object(dev, 'run', side_effect=fake):
+            dev.remove_project('t3dev-clpr-gone', volumes=True)
+        self.assertIn(['docker', 'volume', 'rm', 'id1'], calls)
+        self.assertNotIn('-f', [arg for call in calls for arg in call])
+
+    def test_gc_reports_without_apply_and_removes_volumes_with_apply(self):
+        stale = ({'t3dev-clpr-gone': 'worktree missing'}, [])
+        with patch.object(dev, 'find_stale_projects', return_value=stale), \
+             patch.object(dev, 'remove_project') as remove, patch('sys.stdout', new_callable=io.StringIO) as output:
+            dev.gc()
+            remove.assert_not_called()
+            self.assertIn('Stale: t3dev-clpr-gone', output.getvalue())
+            dev.gc(apply=True)
+            remove.assert_called_once_with('t3dev-clpr-gone', volumes=True)
+
+    def test_start_removes_containers_of_deleted_worktrees_but_keeps_volumes(self):
+        env = dev.Environment(self.live, 'dash')
+        stale = ({'t3dev-clpr-gone': 'worktree missing', 't3dev-dash-x-test': 'leftover test stack'}, [])
+        with patch.object(dev, 'find_stale_projects', return_value=stale), \
+             patch.object(dev, 'remove_project') as remove, \
+             patch.object(dev, 'run', return_value=subprocess.CompletedProcess([], 0, 't3dev-a\nt3dev-b\n')), \
+             patch('sys.stderr', new_callable=io.StringIO):
+            with self.assertRaisesRegex(ValueError, 'Host limit'):
+                env.start()
+        remove.assert_called_once_with('t3dev-clpr-gone', volumes=False)
+
+
+class TeardownTests(unittest.TestCase):
+    def test_sigterm_runs_finally_blocks(self):
+        script = (
+            'import os, signal, sys, dev\n'
+            'signal.signal(signal.SIGTERM, dev._terminate)\n'
+            'try:\n'
+            '    os.kill(os.getpid(), signal.SIGTERM)\n'
+            'finally:\n'
+            '    print("teardown ran")\n')
+        result = subprocess.run([sys.executable, '-c', script], cwd=Path(dev.__file__).parent,
+                                capture_output=True, text=True)
+        self.assertIn('teardown ran', result.stdout)
+        self.assertEqual(result.returncode, 128 + signal.SIGTERM)
 
 
 class LayoutTests(unittest.TestCase):
