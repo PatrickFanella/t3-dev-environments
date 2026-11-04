@@ -1,4 +1,5 @@
 import json
+import re
 import io
 from pathlib import Path
 import signal
@@ -306,6 +307,15 @@ class LayoutTests(unittest.TestCase):
                 env = dev.Environment(root, 'hasanara')
                 env.snapshot()
             self.assertEqual((env.source / 'core/constraints.txt').read_text(), 'x==1\n')
+
+    def test_go_profiles_follow_the_declared_toolchain(self):
+        go_actions = re.compile(r'\bgo (mod|run|test|build|vet)\b')
+        for name, profile in dev.PROFILES.items():
+            commands = ' '.join(str(profile.get(action, '')) for action in ['setup', 'start', 'test', 'verify'])
+            if go_actions.search(commands):
+                with self.subTest(profile=name):
+                    self.assertEqual(profile['env'].get('GOTOOLCHAIN'), 'auto')
+                    self.assertEqual(profile['test_env'].get('GOTOOLCHAIN'), 'auto')
 
     def test_profiles_without_layouts_are_unchanged(self):
         with tempfile.TemporaryDirectory() as temporary:
