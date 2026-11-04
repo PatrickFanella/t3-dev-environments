@@ -245,7 +245,7 @@ class TeardownTests(unittest.TestCase):
 
 class LayoutTests(unittest.TestCase):
     def test_hasanara_selects_backend_or_frontend_layout_from_checkout(self):
-        legacy = dev.PROFILES['hasanara']['layouts'][0]['recipe']
+        legacy = next(l['recipe'] for l in dev.PROFILES['hasanara']['layouts'] if l['when'] == 'frontend/package.json')
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             with patch.object(dev, 'STATE', root / 'state'):
@@ -269,6 +269,43 @@ class LayoutTests(unittest.TestCase):
                 for env in [headless, frontend]:
                     self.assertEqual(env.recipe['env'], dev.PROFILES['hasanara']['env'])
                     self.assertEqual(env.recipe['test_env'], dev.PROFILES['hasanara']['test_env'])
+
+    def test_hasanara_deployment_checkout_runs_core_from_submodule(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root / 'frontend').mkdir()
+            (root / 'frontend/package.json').write_text('{}')
+            (root / 'core').mkdir()
+            (root / 'core/constraints.txt').write_text('')
+            with patch.object(dev, 'STATE', root / 'state'):
+                recipe = dev.Environment(root, 'hasanara').recipe
+            self.assertIn('-c core/constraints.txt -r core/requirements-api.txt', recipe['setup'])
+            self.assertTrue(recipe['start'].startswith('(cd core && '))
+            self.assertIn('--port 41177) & cd frontend;', recipe['start'])
+            self.assertIn('npm --prefix frontend run api:check', recipe['verify'])
+            self.assertNotIn('scripts/validate.py', recipe['verify'])
+            self.assertNotIn('pytest', recipe['test'] + recipe['verify'])
+            self.assertEqual(recipe['health'], '/api/health')
+
+    def test_snapshot_includes_submodule_files(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            git = ['git', '-c', 'user.name=t', '-c', 'user.email=t@example.invalid', '-c', 'protocol.file.allow=always']
+            core = base / 'core-src'
+            core.mkdir()
+            subprocess.run(['git', 'init', '-q', str(core)], check=True)
+            (core / 'constraints.txt').write_text('x==1\n')
+            subprocess.run([*git, '-C', str(core), 'add', '.'], check=True)
+            subprocess.run([*git, '-C', str(core), 'commit', '-qm', 'core'], check=True)
+            root = base / 'deploy'
+            root.mkdir()
+            subprocess.run(['git', 'init', '-q', str(root)], check=True)
+            subprocess.run([*git, '-C', str(root), 'submodule', 'add', '-q', str(core), 'core'], check=True)
+            subprocess.run([*git, '-C', str(root), 'commit', '-qm', 'deploy'], check=True)
+            with patch.object(dev, 'STATE', base / 'state'):
+                env = dev.Environment(root, 'hasanara')
+                env.snapshot()
+            self.assertEqual((env.source / 'core/constraints.txt').read_text(), 'x==1\n')
 
     def test_profiles_without_layouts_are_unchanged(self):
         with tempfile.TemporaryDirectory() as temporary:

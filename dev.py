@@ -222,7 +222,7 @@ class Environment:
         self.testing = test
 
     def snapshot(self):
-        tracked = set(run(['git', '-C', str(self.root), 'ls-files', '-z', '--cached'], capture=True).stdout.split('\0'))
+        tracked = set(run(['git', '-C', str(self.root), 'ls-files', '-z', '--cached', '--recurse-submodules'], capture=True).stdout.split('\0'))
         others = run(['git', '-C', str(self.root), 'ls-files', '-z', '--others', '--exclude-standard'], capture=True).stdout.split('\0')
         names = tracked | set(others)
         copied = {}

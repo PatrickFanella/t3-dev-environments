@@ -134,6 +134,18 @@ npm setup, the Vite preview proxying the API, `/api/health` readiness, and
 frontend checks before the backend suite. Only its Python interpreter changed,
 for the same two tests.
 
+The HasanAra deployment repository (`hasanara.git`) also uses this profile. It
+holds the frontend and pins Rekolekt as the `core` submodule, so the layout keyed
+on `core/constraints.txt` comes first. Setup installs the frontend and
+`core/requirements-api.txt` under `core/constraints.txt`. Start Dev runs
+migrations and uvicorn from `core/` on port 41177 behind the Vite preview, with
+readiness on `/api/health`. Test runs the frontend unit tests and the deployment
+script tests. Check Code adds the frontend API-type, lint, format, coverage,
+build and bundle checks. `scripts/validate.py` stays in repository CI: it compares
+`web-image.json` with the committed `frontend/` tree, and snapshots carry no
+commit history. Core's own suite belongs to Rekolekt. Snapshots include initialized submodule files. Initialize `core` first
+with `git submodule update --init`.
+
 ## Dedhed development
 
 Use profile `dedhed` for the concert library and radio application. Start seeds
