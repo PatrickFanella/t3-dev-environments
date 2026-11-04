@@ -9,11 +9,14 @@
       "PROMETHEUS_URL": "http://127.0.0.1:9",
       "UPTIME_KUMA_URL": "http://127.0.0.1:9",
       "UPTIME_KUMA_SLUG": "development",
-      "LISTEN_ADDR": ":8080"
+      "LISTEN_ADDR": ":8080",
+      "GOTOOLCHAIN": "auto"
     },
     "test": "(cd backend && go test -p 2 ./...); npm --prefix frontend run test:run",
     "verify": "(cd backend && go vet ./... && go test -p 2 ./... && go build ./cmd/almaz); npm --prefix frontend run lint; npm --prefix frontend run test:run; npm --prefix frontend run build",
-    "test_env": {}
+    "test_env": {
+      "GOTOOLCHAIN": "auto"
+    }
   },
   "deadweb-relay": {
     "setup": "go mod download",
@@ -22,11 +25,14 @@
     "env": {
       "DATA_DIR": "/data/relay",
       "ADDR": ":8080",
-      "SITE_NAME": "Deadweb development"
+      "SITE_NAME": "Deadweb development",
+      "GOTOOLCHAIN": "auto"
     },
     "test": "go test -p 2 ./...",
     "verify": "go vet ./...; go test -p 2 ./...; go build ./cmd/relay",
-    "test_env": {},
+    "test_env": {
+      "GOTOOLCHAIN": "auto"
+    },
     "origin_env": [
       "BASE_URL"
     ]
@@ -53,12 +59,15 @@
       "PROJECTION_ACCOUNT_ID": "00000000-0000-4000-8000-000000000064",
       "LLM_DEFAULT_PROVIDER": "ollama",
       "OLLAMA_API_KEY": "isolated-development-dummy",
-      "POLYGON_API_KEY": "isolated-development-dummy"
+      "POLYGON_API_KEY": "isolated-development-dummy",
+      "GOTOOLCHAIN": "auto"
     },
     "test": "go test -p 2 -short ./cmd/... ./internal/... ./migrations/... ./monitoring/...; npm --prefix web run test -- --run",
     "verify": "go vet ./cmd/... ./internal/...; go test -p 2 -short ./cmd/... ./internal/... ./migrations/... ./monitoring/...; npm --prefix web run lint; npm --prefix web run test -- --run; npm --prefix web run build",
     "health": "/api/v1/health",
-    "test_env": {}
+    "test_env": {
+      "GOTOOLCHAIN": "auto"
+    }
   },
   "clpr": {
     "setup": "npm --prefix frontend ci --no-audit --no-fund; cd backend; go mod download",
@@ -83,7 +92,8 @@
       "MIRROR_ENABLED": "false",
       "TELEMETRY_ENABLED": "false",
       "MFA_ENCRYPTION_KEY": "dev-only-00000000000000000000000",
-      "DATABASE_URL": "postgres://clpr:disposable-dev-only@db:5432/clpr?sslmode=disable"
+      "DATABASE_URL": "postgres://clpr:disposable-dev-only@db:5432/clpr?sslmode=disable",
+      "GOTOOLCHAIN": "auto"
     },
     "services": {
       "search": {
@@ -102,7 +112,9 @@
     "test": "(cd backend && go test -p 2 -short ./...); npm --prefix frontend run test -- --run",
     "verify": "(cd backend && go vet ./... && go test -p 2 -short ./...); npm --prefix frontend run typecheck; npm --prefix frontend run lint; npm --prefix frontend run test -- --run; npm --prefix frontend run build",
     "health": "/api/v1/health",
-    "test_env": {},
+    "test_env": {
+      "GOTOOLCHAIN": "auto"
+    },
     "origin_env": [
       "CORS_ALLOWED_ORIGINS",
       "WEBSOCKET_ALLOWED_ORIGINS"
@@ -170,12 +182,15 @@
       "SWITCHYARD_SCHEDULER_ENABLED": "false",
       "SWITCHYARD_COMPATIBILITY_OBSERVER_ENABLED": "false",
       "SWITCHYARD_MODEL_WORKER_ENABLED": "false",
-      "SWITCHYARD_MODEL_LISTEN_ADDR": "127.0.0.1:11435"
+      "SWITCHYARD_MODEL_LISTEN_ADDR": "127.0.0.1:11435",
+      "GOTOOLCHAIN": "auto"
     },
     "test": "(cd backend && go test -p 2 ./...); pnpm --dir web test",
     "verify": "(cd backend && go vet ./... && go test -p 2 ./...); pnpm --dir web run format; pnpm --dir web run lint; pnpm --dir web test; pnpm --dir web build",
     "health": "/healthz",
-    "test_env": {}
+    "test_env": {
+      "GOTOOLCHAIN": "auto"
+    }
   },
   "top-shelf-remodels": {
     "setup": "npm install --prefix /cache/pm pnpm@10.32.1 --no-audit --no-fund; /cache/pm/node_modules/.bin/pnpm install --frozen-lockfile",
@@ -284,11 +299,14 @@
       "PUBLIC_WEB_URL": "http://localhost:5173",
       "MAIL_DELIVERY_ENABLED": "false",
       "ATPROTO_OAUTH_ENABLED": "false",
-      "AT_PROJECTION_ENABLED": "false"
+      "AT_PROJECTION_ENABLED": "false",
+      "GOTOOLCHAIN": "auto"
     },
     "test": "make test",
     "verify": "make fmt lint check-contracts test build open-pilot-check",
-    "test_env": {},
+    "test_env": {
+      "GOTOOLCHAIN": "auto"
+    },
     "origin_env": [
       "PUBLIC_WEB_URL"
     ]
@@ -323,12 +341,14 @@
     "env": {
       "API_ADDR": ":8080",
       "ARKHIV_ARCHIVE": "/workspace/var/archive",
-      "ARKHIV_FIXTURE": "1"
+      "ARKHIV_FIXTURE": "1",
+      "GOTOOLCHAIN": "auto"
     },
     "test": "make test",
     "verify": "make verify",
     "test_env": {
-      "TEST_DATABASE_URL": "postgres://dev:disposable-dev-only@db:5432/dev?sslmode=disable"
+      "TEST_DATABASE_URL": "postgres://dev:disposable-dev-only@db:5432/dev?sslmode=disable",
+      "GOTOOLCHAIN": "auto"
     },
     "notes": "Local catalog, preservation and PDF reader with synthetic collections. Tests use disposable PostgreSQL. Live acquisition remains outside isolated preview/test networks. PostgreSQL 15 matches the tools image pg_dump; homelab PostgreSQL 17 recovery is a separate qualification.",
     "test_services": [
@@ -344,12 +364,14 @@
     "db": "postgres:17",
     "env": {
       "API_ADDR": ":8080",
-      "DEDHED_MEDIA": "/workspace/var/media"
+      "DEDHED_MEDIA": "/workspace/var/media",
+      "GOTOOLCHAIN": "auto"
     },
     "test": "make test",
     "verify": "make verify",
     "test_env": {
-      "TEST_DATABASE_URL": "postgres://dev:disposable-dev-only@db:5432/dev?sslmode=disable"
+      "TEST_DATABASE_URL": "postgres://dev:disposable-dev-only@db:5432/dev?sslmode=disable",
+      "GOTOOLCHAIN": "auto"
     },
     "test_services": [
       "db"
@@ -369,12 +391,14 @@
     "health": "/api/ready",
     "db": "postgres:17",
     "env": {
-      "API_ADDR": ":8080"
+      "API_ADDR": ":8080",
+      "GOTOOLCHAIN": "auto"
     },
     "test": "make test",
     "verify": "make verify",
     "test_env": {
-      "TEST_DATABASE_URL": "postgres://dev:disposable-dev-only@db:5432/dev?sslmode=disable"
+      "TEST_DATABASE_URL": "postgres://dev:disposable-dev-only@db:5432/dev?sslmode=disable",
+      "GOTOOLCHAIN": "auto"
     },
     "test_services": [
       "db"

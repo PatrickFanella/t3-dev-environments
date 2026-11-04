@@ -143,8 +143,9 @@ readiness on `/api/health`. Test runs the frontend unit tests and the deployment
 script tests. Check Code adds the frontend API-type, lint, format, coverage,
 build and bundle checks. `scripts/validate.py` stays in repository CI: it compares
 `web-image.json` with the committed `frontend/` tree, and snapshots carry no
-commit history. Core's own suite belongs to Rekolekt. Snapshots include initialized submodule files. Initialize `core` first
-with `git submodule update --init`.
+commit history. Core's own suite belongs to Rekolekt. Snapshots include
+initialized submodule files. Initialize `core` first with
+`git submodule update --init`.
 
 ## Dedhed development
 
@@ -185,3 +186,12 @@ The SQLite database is separate from other worktrees. Tests use temporary SQLite
 files and mocked Archive/core responses. Check Code runs pytest, Ruff lint and
 format checks, and the browser JavaScript syntax check. These checks do not prove
 live Archive discovery, a core connection, public access approval or publication.
+
+## Declared Go toolchains
+
+Go profiles set `GOTOOLCHAIN=auto` for setup and for isolated checks, so the
+`go` and `toolchain` lines in a checkout's `go.mod` choose the Go version
+instead of the tools image's Go 1.26.6. Setup runs with network access and
+downloads that toolchain into the environment's `/cache/go-mod`; the isolated
+checks then use the cached copy. Existing previews keep their current
+containers until their owner restarts them.
