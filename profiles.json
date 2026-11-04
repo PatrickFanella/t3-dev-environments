@@ -251,6 +251,16 @@
     ],
     "layouts": [
       {
+        "when": "core/constraints.txt",
+        "recipe": {
+          "setup": "npm --prefix frontend ci --no-audit --no-fund; test -x /cache/uv/bin/uv || python3 -m venv /cache/uv; /cache/uv/bin/pip install -q uv==0.12.22; export UV_PYTHON_INSTALL_DIR=/cache/python; /cache/uv/bin/uv python install 3.11; case \"$(/cache/venv/bin/python -c 'import sys; print(sys.base_prefix)' 2>/dev/null)\" in /cache/python/*) ;; *) rm -rf /cache/venv; /cache/uv/bin/uv venv --seed --managed-python --python 3.11 /cache/venv ;; esac; /cache/venv/bin/pip install -c core/constraints.txt -r core/requirements-api.txt",
+          "start": "(cd core && /cache/venv/bin/python scripts/run_migrations.py upgrade && exec /cache/venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 41177) & cd frontend; exec npm run dev -- --host 0.0.0.0 --port 5173 --strictPort",
+          "test": "npm --prefix frontend run test -- --run; /cache/venv/bin/python -B scripts/web_manifest.test.py; /cache/venv/bin/python -B scripts/operational-alerts.test.py",
+          "verify": "npm --prefix frontend run api:check; npm --prefix frontend run lint; npm --prefix frontend run format:check; npm --prefix frontend run test:coverage; npm --prefix frontend run build; npm --prefix frontend run bundle:check; /cache/venv/bin/python -B scripts/web_manifest.test.py; /cache/venv/bin/python -B scripts/operational-alerts.test.py",
+          "health": "/api/health"
+        }
+      },
+      {
         "when": "frontend/package.json",
         "recipe": {
           "setup": "npm --prefix frontend ci --no-audit --no-fund; test -x /cache/uv/bin/uv || python3 -m venv /cache/uv; /cache/uv/bin/pip install -q uv==0.12.22; export UV_PYTHON_INSTALL_DIR=/cache/python; /cache/uv/bin/uv python install 3.11; case \"$(/cache/venv/bin/python -c 'import sys; print(sys.base_prefix)' 2>/dev/null)\" in /cache/python/*) ;; *) rm -rf /cache/venv; /cache/uv/bin/uv venv --seed --managed-python --python 3.11 /cache/venv ;; esac; /cache/venv/bin/pip install -c constraints.txt -r requirements-api.txt -r requirements-dev.txt",
